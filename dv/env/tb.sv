@@ -63,17 +63,31 @@ interface fmt_intf(input clk, input rstn);
   endclocking
 endinterface
 
-interface mcdf_intf(input clk, input rstn);
+interface mcdf_intf(output logic clk, output logic rstn);
   // USER TODO
   // To define those signals which do not exsit in
   // reg_if, chnl_if, arb_if or fmt_if
   logic chnl_en[3];
 
-
   clocking mon_ck @(posedge clk);
     default input #1ns output #1ns;
     input chnl_en;
   endclocking
+    
+  // clock generation
+  initial begin 
+    clk <= 0;
+    forever begin
+      #5 clk <= !clk;
+    end
+  end
+  
+  // reset trigger
+  initial begin 
+    #10 rstn <= 0;
+    repeat(10) @(posedge clk);
+    rstn <= 1;
+  end
 endinterface
 
 module tb;
@@ -104,21 +118,7 @@ module tb;
     ,.fmt_start_o (fmt_if.fmt_start   )  
     ,.fmt_end_o   (fmt_if.fmt_end     )  
   );
-  
-  // clock generation
-  initial begin 
-    clk <= 0;
-    forever begin
-      #5 clk <= !clk;
-    end
-  end
-  
-  // reset trigger
-  initial begin 
-    #10 rstn <= 0;
-    repeat(10) @(posedge clk);
-    rstn <= 1;
-  end
+
 
   import uvm_pkg::*;
   `include "uvm_macros.svh"

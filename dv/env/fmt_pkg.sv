@@ -37,8 +37,6 @@ package fmt_pkg;
   // formatter driver
   class fmt_driver extends uvm_driver #(fmt_trans);
     local virtual fmt_intf intf;
-    mailbox #(fmt_trans) req_mb;
-    mailbox #(fmt_trans) rsp_mb;
 
     local mailbox #(bit[31:0]) fifo;
     local int fifo_bound;
@@ -72,7 +70,7 @@ package fmt_pkg;
     task do_config();
       fmt_trans req, rsp;
       forever begin
-        this.req_mb.get(req);
+        seq_item_port.get_next_item(req);
         case(req.fifo)
           SHORT_FIFO: this.fifo_bound = 64;
           MED_FIFO: this.fifo_bound = 256;
@@ -88,7 +86,8 @@ package fmt_pkg;
         endcase
         void'($cast(rsp, req.clone()));
         rsp.rsp = 1;
-        this.rsp_mb.put(rsp);
+        rsp.set_sequence_id(req.get_sequence_id());
+        seq_item_port.item_done(rsp);
       end
     endtask
 
@@ -131,45 +130,43 @@ package fmt_pkg;
     endtask
   endclass: fmt_driver
 
-  // formatter generator and to be replaced by sequence + sequencer later
-  class fmt_generator extends uvm_component;
+  class fmt_sequencer extends uvm_sequencer #(fmt_trans);
+    `uvm_component_utils(fmt_sequencer)
+    function new (string name = "fmt_sequencer", uvm_component parent);
+      super.new(name, parent);
+    endfunction
+  endclass: fmt_sequencer
+
+  
+  class fmt_config_sequence extends uvm_sequence #(fmt_trans);
     rand fmt_fifo_t fifo = MED_FIFO;
     rand fmt_bandwidth_t bandwidth = MED_WIDTH;
-
-    mailbox #(fmt_trans) req_mb;
-    mailbox #(fmt_trans) rsp_mb;
-
     constraint cstr{
       soft fifo == MED_FIFO;
       soft bandwidth == MED_WIDTH;
     }
 
-    `uvm_component_utils_begin(fmt_generator)
+    `uvm_object_utils_begin(fmt_config_sequence)
       `uvm_field_enum(fmt_fifo_t, fifo, UVM_ALL_ON)
       `uvm_field_enum(fmt_bandwidth_t, bandwidth, UVM_ALL_ON)
-    `uvm_component_utils_end
+    `uvm_object_utils_end
+    `uvm_declare_p_sequencer(fmt_sequencer)
 
-    function new (string name = "chnl_generator", uvm_component parent);
-      super.new(name, parent);
-      this.req_mb = new();
-      this.rsp_mb = new();
+    function new (string name = "fmt_config_sequence");
+      super.new(name);
     endfunction
 
-    task start();
+    task body();
       send_trans();
     endtask
-
-    // generate transaction and put into local mailbox
+    
     task send_trans();
       fmt_trans req, rsp;
-      req = new();
-      assert(req.randomize with {local::fifo != MED_FIFO -> fifo == local::fifo; 
-                                 local::bandwidth != MED_WIDTH -> bandwidth == local::bandwidth;
-                               })
-        else $fatal("[RNDFAIL] formatter packet randomization failure!");
+      `uvm_do_with(req, {local::fifo != MED_FIFO -> fifo == local::fifo; 
+                         local::bandwidth != MED_WIDTH -> bandwidth == local::bandwidth;
+                        })
       `uvm_info(get_type_name(), req.sprint(), UVM_HIGH)
-      this.req_mb.put(req);
-      this.rsp_mb.get(rsp);
+      get_response(rsp);
       `uvm_info(get_type_name(), rsp.sprint(), UVM_HIGH)
       assert(rsp.rsp)
         else $error("[RSPERR] %0t error response received!", $time);
@@ -179,26 +176,24 @@ package fmt_pkg;
       string s;
       s = {s, "AFTER RANDOMIZATION \n"};
       s = {s, "=======================================\n"};
-      s = {s, "fmt_generator object content is as below: \n"};
+      s = {s, "fmt_config_sequence object content is as below: \n"};
       s = {s, super.sprint()};
       s = {s, "=======================================\n"};
       `uvm_info(get_type_name(), s, UVM_HIGH)
     endfunction
-  endclass
+  endclass: fmt_config_sequence
 
   // formatter monitor
   class fmt_monitor extends uvm_monitor;
     local string name;
     local virtual fmt_intf intf;
-    //TODO-1.1 to implement uvm_blocking_put_PORT here and later to be
-    //connected to target export/imp
-    mailbox #(fmt_trans) mon_mb;
+    uvm_blocking_put_port #(fmt_trans) mon_bp_port;
 
     `uvm_component_utils(fmt_monitor)
 
     function new(string name="fmt_monitor", uvm_component parent);
       super.new(name, parent);
-      //TODO-1.1 instantiate the TLM port
+      mon_bp_port = new("mon_bp_port", this);
     endfunction
 
     function void set_interface(virtual fmt_intf intf);
@@ -225,8 +220,7 @@ package fmt_pkg;
           @(posedge intf.clk);
           m.data[i] = intf.mon_ck.fmt_data;
         end
-        //TODO-1.1 instantiate the TLM port
-        mon_mb.put(m);
+        mon_bp_port.put(m);
         s = $sformatf("=======================================\n");
         s = {s, $sformatf("%0t %s monitored a packet: \n", $time, this.m_name)};
         s = {s, $sformatf("length = %0d: \n", m.length)};
@@ -242,6 +236,7 @@ package fmt_pkg;
   class fmt_agent extends uvm_agent;
     fmt_driver driver;
     fmt_monitor monitor;
+    fmt_sequencer sequencer;
     local virtual fmt_intf vif;
 
     `uvm_component_utils(fmt_agent)
@@ -254,6 +249,12 @@ package fmt_pkg;
       super.build_phase(phase);
       driver = fmt_driver::type_id::create("driver", this);
       monitor = fmt_monitor::type_id::create("monitor", this);
+      sequencer = fmt_sequencer::type_id::create("sequencer", this);
+    endfunction
+
+    function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      driver.seq_item_port.connect(sequencer.seq_item_export);
     endfunction
 
     function void set_interface(virtual fmt_intf vif);

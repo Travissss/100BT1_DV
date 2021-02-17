@@ -3,9 +3,9 @@
 #############################
 TB       = tb
 SEED     = 1
-TESTNAME ?=  mcdf_data_consistence_basic_test
+TESTNAME ?= mcdf_data_consistence_basic_test
 DFILES   =param_def.v ../mcdf/arbiter.v ../mcdf/slave_fifo.v ../mcdf/reg.v ../mcdf/formater.v ../mcdf/mcdf.v
-VFILES  += arb_pkg.sv chnl_pkg.sv fmt_pkg.sv reg_pkg.sv mcdf_pkg.sv $(TB).sv
+VFILES  +=arb_pkg.sv chnl_pkg.sv fmt_pkg.sv reg_pkg.sv mcdf_rgm_pkg.sv mcdf_pkg.sv  $(TB).sv
 
 
 #############################

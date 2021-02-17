@@ -34,8 +34,6 @@ package reg_pkg;
   // register driver
   class reg_driver extends uvm_driver #(reg_trans);
     local virtual reg_intf intf;
-    mailbox #(reg_trans) req_mb;
-    mailbox #(reg_trans) rsp_mb;
 
     `uvm_component_utils(reg_driver)
   
@@ -70,11 +68,12 @@ package reg_pkg;
       reg_trans req, rsp;
       @(posedge intf.rstn);
       forever begin
-        this.req_mb.get(req);
+        seq_item_port.get_next_item(req);
         this.reg_write(req);
         void'($cast(rsp, req.clone()));
         rsp.rsp = 1;
-        this.rsp_mb.put(rsp);
+        rsp.set_sequence_id(req.get_sequence_id());
+        seq_item_port.item_done(rsp);
       end
     endtask
   
@@ -108,14 +107,17 @@ package reg_pkg;
     endtask
   endclass
 
-  // register generator and to be replaced by sequence + sequencer later
-  class reg_generator extends uvm_component;
+  class reg_sequencer extends uvm_sequencer #(reg_trans);
+    `uvm_component_utils(reg_sequencer)
+    function new (string name = "reg_sequencer", uvm_component parent);
+      super.new(name, parent);
+    endfunction
+  endclass: reg_sequencer
+
+  class reg_base_sequence extends uvm_sequence #(reg_trans);
     rand bit[7:0] addr = -1;
     rand bit[1:0] cmd = -1;
     rand bit[31:0] data = -1;
-
-    mailbox #(reg_trans) req_mb;
-    mailbox #(reg_trans) rsp_mb;
 
     constraint cstr{
       soft addr == -1;
@@ -123,34 +125,30 @@ package reg_pkg;
       soft data == -1;
     }
 
-    `uvm_component_utils_begin(reg_generator)
+    `uvm_object_utils_begin(reg_base_sequence)
       `uvm_field_int(addr, UVM_ALL_ON)
       `uvm_field_int(cmd, UVM_ALL_ON)
       `uvm_field_int(data, UVM_ALL_ON)
-    `uvm_component_utils_end
+    `uvm_object_utils_end
+    `uvm_declare_p_sequencer(reg_sequencer)
 
-    function new (string name = "reg_generator", uvm_component parent);
-      super.new(name, parent);
-      this.req_mb = new();
-      this.rsp_mb = new();
+    function new (string name = "reg_base_sequence");
+      super.new(name);
     endfunction
 
-    task start();
+    task body();
       send_trans();
     endtask
 
     // generate transaction and put into local mailbox
     task send_trans();
       reg_trans req, rsp;
-      req = new();
-      assert(req.randomize with {local::addr >= 0 -> addr == local::addr;
-                                 local::cmd >= 0 -> cmd == local::cmd;
-                                 local::data >= 0 -> data == local::data;
-                               })
-        else $fatal("[RNDFAIL] register packet randomization failure!");
+      `uvm_do_with(req, {local::addr >= 0 -> addr == local::addr;
+                         local::cmd >= 0 -> cmd == local::cmd;
+                         local::data >= 0 -> data == local::data;
+                         })
       `uvm_info(get_type_name(), req.sprint(), UVM_HIGH)
-      this.req_mb.put(req);
-      this.rsp_mb.get(rsp);
+      get_response(rsp);
       `uvm_info(get_type_name(), rsp.sprint(), UVM_HIGH)
       if(req.cmd == `READ) 
         this.data = rsp.data;
@@ -162,25 +160,57 @@ package reg_pkg;
       string s;
       s = {s, "AFTER RANDOMIZATION \n"};
       s = {s, "=======================================\n"};
-      s = {s, "reg_generator object content is as below: \n"};
+      s = {s, "reg_base_sequence object content is as below: \n"};
       s = {s, super.sprint()};
       s = {s, "=======================================\n"};
       `uvm_info(get_type_name(), s, UVM_HIGH)
     endfunction
-  endclass
+  endclass: reg_base_sequence
+
+  class idle_reg_sequence extends reg_base_sequence;
+    constraint cstr{
+      addr == 0;
+      cmd == `IDLE;
+      data == 0;
+    }
+    `uvm_object_utils(idle_reg_sequence)
+    function new (string name = "idle_reg_sequence");
+      super.new(name);
+    endfunction
+  endclass: idle_reg_sequence
+
+  class write_reg_sequence extends reg_base_sequence;
+    constraint cstr{
+      cmd == `WRITE;
+    }
+    `uvm_object_utils(write_reg_sequence)
+    function new (string name = "write_reg_sequence");
+      super.new(name);
+    endfunction
+  endclass: write_reg_sequence
+
+  class read_reg_sequence extends reg_base_sequence;
+    constraint cstr{
+      cmd == `READ;
+    }
+    `uvm_object_utils(read_reg_sequence)
+    function new (string name = "read_reg_sequence");
+      super.new(name);
+    endfunction
+  endclass: read_reg_sequence 
 
   // register monitor
   class reg_monitor extends uvm_monitor;
     local virtual reg_intf intf;
-    //TODO-1.1 to implement uvm_blocking_put_PORT here and later to be
-    //connected to target export/imp
-    mailbox #(reg_trans) mon_mb;
+    uvm_blocking_put_port #(reg_trans) mon_bp_port;
+    uvm_analysis_port #(reg_trans) mon_ana_port;
 
     `uvm_component_utils(reg_monitor)
 
     function new(string name="reg_monitor", uvm_component parent);
       super.new(name, parent);
-      //TODO-1.1 instantiate the TLM port
+      mon_bp_port = new("mon_bp_port", this);
+      mon_ana_port = new("mon_ana_port", this);
     endfunction
 
     function void set_interface(virtual reg_intf intf);
@@ -208,8 +238,8 @@ package reg_pkg;
           @(posedge intf.clk);
           m.data = intf.mon_ck.cmd_data_s2m;
         end
-        //TODO-1.1 instantiate the TLM port
-        mon_mb.put(m);
+        mon_bp_port.put(m);
+        mon_ana_port.write(m);
         `uvm_info(get_type_name(), $sformatf("monitored addr %2x, cmd %2b, data %8x", m.addr, m.cmd, m.data), UVM_HIGH)
       end
     endtask
@@ -219,6 +249,7 @@ package reg_pkg;
   class reg_agent extends uvm_agent;
     reg_driver driver;
     reg_monitor monitor;
+    reg_sequencer sequencer;
     local virtual reg_intf vif;
 
     `uvm_component_utils(reg_agent)
@@ -231,6 +262,12 @@ package reg_pkg;
       super.build_phase(phase);
       driver = reg_driver::type_id::create("driver", this);
       monitor = reg_monitor::type_id::create("monitor", this);
+      sequencer = reg_sequencer::type_id::create("sequencer", this);
+    endfunction
+
+    function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      driver.seq_item_port.connect(sequencer.seq_item_export);
     endfunction
 
     function void set_interface(virtual reg_intf vif);
