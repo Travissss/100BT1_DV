@@ -8,7 +8,7 @@
 // Revision 0.01 - File Created 
 // Additional Comments:
 // -------------------------------------------------------------------------------
-// 	-> channel monitor
+// 	-> channel agent contains monitor, sequencer, driver, connect sqr with driver
 //////////////////////////////////////////////////////////////////////////////////
 
 `ifndef MCDF_CHNL_AGT_SV

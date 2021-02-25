@@ -14,12 +14,20 @@
 `ifndef MCDF_CHNL_SV
 `define MCDF_CHNL_SV
 
+`include "chnl_if.sv"
 package chnl_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
-
-
-
+    typedef struct packed{
+        bit [31:0]  data;
+        bit [1:0]   id;
+    } mon_data_t;
+    
+    `include "chnl_trans.sv"
+    `include "chnl_drv.sv"
+    `include "chnl_sqr.sv"
+    `include "chnl_mon.sv"
+    `include "chnl_agt.sv"
 	
 endpackage
 
