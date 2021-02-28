@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
-// Create Date: 	02/23/2021 Thu 20:19
-// Filename: 		chnl_mon.sv
-// class Name: 		chnl_mon
+// Create Date: 	02/28/2021 SUN 17:27
+// Filename: 		fmt_mon.sv
+// class Name: 		fmt_mon
 // Project Name: 	mcdf
 // Revision 0.01 - File Created 
 // Additional Comments:
@@ -11,66 +11,81 @@
 // 	-> channel monitor
 //////////////////////////////////////////////////////////////////////////////////
 
-`ifndef MCDF_CHNL_MON_SV
-`define MCDF_CHNL_MON_SV
+`ifndef MCDF_FMT_MON_SV
+`define MCDF_FMT_MON_SV
 
-class chnl_mon extends uvm_monitor;
+class fmt_mon extends uvm_monitor;
 
 	//------------------------------------------
 	// Data, Interface, port  Members
 	//------------------------------------------
-    virtual chnl_intf vif;
-	uvm_blocking_put_port #(mon_data_t) mon_bp_port;
+    string  name;
+    virtual fmt_intf vif;
+	uvm_blocking_put_port #(fmt_trans) mon_bp_port;
 	//Factory Registration
 	//
-    `uvm_component_utils(chnl_mon)
+    `uvm_component_utils(fmt_mon)
  
 	//----------------------------------------------
 	// Methods
 	// ---------------------------------------------
 	// Standard UVM Methods:	
-	extern function new(string name = "chnl_mon", uvm_component parent);
+	extern function new(string name = "fmt_mon", uvm_component parent);
 	extern virtual function void build_phase(uvm_phase phase);
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
-    extern virtual function void set_interface(virtual chnl_intf vif);
+    extern virtual function void set_interface(virtual fmt_intf vif);
     extern task mon_trans();
 
 endclass
 
 //Constructor
-function void chnl_mon::new(string name = "chnl_mon", uvm_component parent)
+function void fmt_mon::new(string name = "fmt_mon", uvm_component parent)
 	super.new(name, parent);
 endfunction
 
 //Build_Phase
-function void chnl_mon::build_phase(uvm_phase phase);
+function void fmt_mon::build_phase(uvm_phase phase);
 	super.build_phase(phase);
     mon_bp_port = new("mon_bp_port", this);
 endfunction
 
 //Run_Phase
-task chnl_mon::run_phase(uvm_phase phase);
+task fmt_mon::run_phase(uvm_phase phase);
     
     this.mon_trans();
     
 endtask
 
 // User Defined Methods:
-function void chnl_mon::set_interface(virtual chnl_intf vif);
+function void fmt_mon::set_interface(virtual fmt_intf vif);
     if(vif == null)
         `uvm_fatal(get_type_name(), "Error in getting Interface")
     else 
         this.vif = vif; 
 endfunction
 
-task chnl_mon::mon_trans();
-    mon_data_t pkt;
+task fmt_mon::mon_trans();
+    fmt_trans pkt;
+    string s;
     forever begin
-        @(posedge intf.clk iff (vif.mon_cb.ch_valid==='b1 && vif.mon_cb.ch_ready==='b1));
-        pkt.data = vif.mon_cb.ch_data;
+        @(posedge vif.mon_cb.fmt_start);
+            pkt = new();
+            pkt.length  = vif.mon_cb.fmt_length;
+            pkt.ch_id   = vif.mon_cb.fmt_chid;
+            pkt.data    = vif.mon_cb.fmt_data;
+            foreach(pkt.data[i]) begin
+                @(posedge vif.clk);
+                pkt.data[i] = vif.mon_cb.fmt_data;
+            end
         mon_bp_port.put(pkt);
-        `uvm_info(get_type_name(), $sformatf("monitored channel data 'h%8x", m.data), UVM_HIGH)
+        s = $sformatf("================================================\n");
+        s = {s, $sformatf("%0t %s monitor a packet: \n", $time, this.name);
+        s = {s, $sformatf("length = %0x: \n", pkt.length)};
+        s = {s, $sformatf("chid = %0x: \n", pkt.ch_id)};
+        foreach(pkt.data[i]) s = {s, $sformatf("data[%0d] = %8x \n",i , pkt.data[i])};
+        s = $sformatf("================================================\n");
+        `uvm_info(get_type_name(), s, UVM_MEDIUM)
     end
 endtask
 

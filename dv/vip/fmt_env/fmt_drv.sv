@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
-// Create Date: 	02/17/2021 Wed 20:03
-// Filename: 		chnl_drv.sv
-// class Name: 		chnl_drv
+// Create Date: 	02/26/2021 Fri 20:21
+// Filename: 		fmt_drv.sv
+// class Name: 		fmt_drv
 // Project Name: 	mcdf
 // Revision 0.01 - File Created 
 // Additional Comments:
@@ -11,76 +11,122 @@
 // 	-> channel driver, to drive data and valid signals to interface
 //////////////////////////////////////////////////////////////////////////////////
 
-`ifndef MCDF_CHNL_DRV_SV
-`define MCDF_CHNL_DRV_SV
+`ifndef MCDF_FMT_DRV_SV
+`define MCDF_FMT_DRV_SV
 
-class chnl_drv extends uvm_driver;
+class fmt_drv extends uvm_driver;
 
 	//------------------------------------------
 	// Data, Interface, port  Members
 	//------------------------------------------
-    virtual chnl_intf vif;
+    virtual fmt_intf vif;
+    
+    local mailbox #(bit[31:0]) fifo;
+    local int   fifo_bound;
+    local int   data_consum_period;
 		
 	//Factory Registration
 	//
-    `uvm_component_utils(chnl_drv)
+    `uvm_component_utils(fmt_drv)
  
 	//----------------------------------------------
 	// Methods
 	// ---------------------------------------------
 	// Standard UVM Methods:	
-	extern function new(string name = "chnl_drv", uvm_component parent);
+	extern function new(string name = "fmt_drv", uvm_component parent);
 	extern virtual function void build_phase(uvm_phase phase);
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
     extern virtual function void set_interface(virtual chnl_intf vif);
-    extern task do_reset    (virtual chnl_intf vif);
-    extern task do_drive    ();
-    extern task chnl_write  (input chnl_trans pkt);
-    extern task chnl_idle   ();
+    extern task do_receive    ();
+    extern task do_consume    ();
+    extern task do_config     ();
+    extern task do_reset      ();
 	
 endclass
 
 //Constructor
-function void chnl_drv::new(string name = "chnl_drv", uvm_component parent)
+function void fmt_drv::new(string name = "fmt_drv", uvm_component parent)
 	super.new(name, parent);
 endfunction
 
 //Build_Phase
-function void chnl_drv::build_phase(uvm_phase phase);
+function void fmt_drv::build_phase(uvm_phase phase);
 	super.build_phase(phase);
+    this.fifo = new();
+    this.fifo_bound = 4096;
+    this.data_consum_period = 1;
 endfunction
 
 //Run_Phase
-task chnl_drv::run_phase(uvm_phase phase);
+task fmt_drv::run_phase(uvm_phase phase);
     fork
-        this.do_reset();
-        this.do_drive();
+        this.do_receive    ();
+        this.do_consume    ();
+        this.do_config     ();
+        this.do_reset      ();
     join
 endtask
 
 // User Defined Methods:
-function void chnl_drv::set_interface(virtual chnl_intf vif);
+function void fmt_drv::set_interface(virtual fmt_intf vif);
     if(vif == null)
         `uvm_fatal(get_type_name(), "Error in getting Interface")
     else 
         this.vif = vif; 
 endfunction
 
-task chnl_drv::do_reset();
+task fmt_drv::do_receive();
     forever begin
-        @(negedge vif.rstn);
-        vif.ch_valid    <= 0;
-        vif.ch_data     <= 0;
+        @(posedge vif.fmt_req);
+        forever begin
+            @(posedge vif.clk);
+            if((this.fifo_bound-this.fifo.num()) >= vif.fmt_length)
+                break;
+        end
+        vif.drv_cb.fmt_grant <= 1;
+        @(posedge vif.fmt_start);
+        fork
+            begin
+                @(posedge vif.clk);
+                vif.drv_cb.fmt_grant <= 0;
+            end
+        join_none
+        
+        repeat(vif.fmt_length) begin
+            @(negedge vif.clk);
+            this.fifo.put(vif.fmt_data);       
+        end
     end
 endtask
 
-task chnl_drv::do_drive();
-    chnl_trans req, rsp;
-    @(posedge vif.rstn);
+task fmt_drv::do_consume();
+    bit [31:0] data;
+    forever begin
+        void'(this.try_get(data));
+        repeat($urandom_range(1, this.data_consum_period))
+            @(posedge vif.clk);
+    end
+endtask
+
+task fmt_drv::do_config();
+    fmt_trans req, rsp;
     forever begin
         seq_item_port.get_next_item(req);
-        this.chnl_write(req);
+        case(req.fmt_fifo)
+            SHORT_FIFO  : this.fifo_bound = 64;
+            MED_FIFO    : this.fifo_bound = 256;
+            LONG_FIFO   : this.fifo_bound = 512;
+            ULTRA_FIFO  : this.fifo_bound = 2048;
+        endcase
+        this.fifo = new(this.fifo_bound);
+        
+        case(req.fmt_bandwidth)
+            LOW_WIDTH   : this.data_consum_period = 8;
+            MED_WIDTH   : this.data_consum_period = 4;
+            HIGH_WIDTH  : this.data_consum_period = 2;
+            ULTRA_WIDTH : this.data_consum_period = 1;        
+        endcase
         void'($cast(rsp, req.clone()));
         rsp.rsp = 1;
         rsp.set_sequence_id(req.get_sequence_id());
@@ -88,23 +134,12 @@ task chnl_drv::do_drive();
     end
 endtask
 
-task chnl_drv::chnl_write(input chnl_trans pkt);
-    foreach(pkt.data[i]) begin
-        @(posedge vif.clk);
-        vif.drv_cb.ch_valid <= 1;
-        vif.drv_cb.ch_data <= pkt.data[i];
-        @(negedge vif.clk);
-        wait(vif.ch_ready === 1'b1);
-        `uvm_info(get_type_name(), $sformatf("sent data 'h%8x", pkt.data[i]), UVM_HIGH)
-        repeat(pkt.data_nidles) chnl_idle();
+task fmt_drv::do_reset();
+    forever begin
+        @(negedge vif.rstn);
+        vif.drv_cb.fmt_grant <= 0;
     end
-    repeat(pkt.pkt_nidles) chnl_idle();
 endtask
 
-task chnl_drv::chnl_idle();
-    @(posedge intf.clk);
-    vif.drv_cb.ch_valid <= 0;
-    vif.drv_cb.ch_data <= 0; 
-endtask
 
 `endif

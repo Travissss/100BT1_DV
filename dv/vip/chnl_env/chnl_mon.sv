@@ -67,7 +67,7 @@ endfunction
 task chnl_mon::mon_trans();
     mon_data_t pkt;
     forever begin
-        @(posedge intf.clk iff (vif.mon_cb.ch_valid==='b1 && vif.mon_cb.ch_ready==='b1));
+        @(posedge vif.clk iff (vif.mon_cb.ch_valid==='b1 && vif.mon_cb.ch_ready==='b1));
         pkt.data = vif.mon_cb.ch_data;
         mon_bp_port.put(pkt);
         `uvm_info(get_type_name(), $sformatf("monitored channel data 'h%8x", m.data), UVM_HIGH)

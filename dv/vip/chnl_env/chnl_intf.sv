@@ -2,8 +2,8 @@
 // Engineer: 		Travis
 // 
 // Create Date: 	02/23/2021 Thu 18:58
-// Filename: 		chnl_if.sv
-// class Name: 		chnl_if
+// Filename: 		chnl_intf.sv
+// class Name: 		chnl_intf
 // Project Name: 	mcdf_uvm
 // Revision 0.01 - File Created 
 // Additional Comments:
@@ -11,7 +11,7 @@
 // 	-> Connect medias in UVC
 //////////////////////////////////////////////////////////////////////////////////
 
-interface chnl_if(input clk, input resetn);
+interface chnl_intf(input clk, input rstn);
 	logic	[31:0]	ch_data;
 	logic			ch_valid;
 	logic 			ch_ready;

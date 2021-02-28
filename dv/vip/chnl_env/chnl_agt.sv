@@ -38,7 +38,6 @@ class chnl_agt extends uvm_agent;
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
     extern virtual function void set_interface(virtual chnl_intf vif);
-    extern task mon_trans();
 
 endclass
 
