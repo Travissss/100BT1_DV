@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
-// Create Date: 	02/26/2021 Tue
-// Filename: 		fmt_if.sv
-// class Name: 		fmt_if
+// Create Date: 	02/26/2021 Fri
+// Filename: 		fmt_intf.sv
+// class Name: 		fmt_intf
 // Project Name: 	mcdf_uvm
 // Revision 0.01 - File Created 
 // Additional Comments:

@@ -14,7 +14,7 @@
 `ifndef MCDF_FMT_DRV_SV
 `define MCDF_FMT_DRV_SV
 
-class fmt_drv extends uvm_driver;
+class fmt_drv extends uvm_driver #(fmt_trans);
 
 	//------------------------------------------
 	// Data, Interface, port  Members
@@ -103,7 +103,7 @@ endtask
 task fmt_drv::do_consume();
     bit [31:0] data;
     forever begin
-        void'(this.try_get(data));
+        void'(this.fifo.try_get(data));
         repeat($urandom_range(1, this.data_consum_period))
             @(posedge vif.clk);
     end

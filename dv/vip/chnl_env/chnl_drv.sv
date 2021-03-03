@@ -14,7 +14,7 @@
 `ifndef MCDF_CHNL_DRV_SV
 `define MCDF_CHNL_DRV_SV
 
-class chnl_drv extends uvm_driver;
+class chnl_drv extends uvm_driver#(chnl_trans);
 
 	//------------------------------------------
 	// Data, Interface, port  Members
@@ -102,7 +102,7 @@ task chnl_drv::chnl_write(input chnl_trans pkt);
 endtask
 
 task chnl_drv::chnl_idle();
-    @(posedge intf.clk);
+    @(posedge vif.clk);
     vif.drv_cb.ch_valid <= 0;
     vif.drv_cb.ch_data <= 0; 
 endtask

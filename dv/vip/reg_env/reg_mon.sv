@@ -1,36 +1,36 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
-// Create Date: 	02/28/2021 Sun 17:27
-// Filename: 		fmt_mon.sv
-// class Name: 		fmt_mon
+// Create Date: 	003/02/2021 Tue 21:30 
+// Filename: 		reg_mon.sv
+// class Name: 		reg_mon
 // Project Name: 	mcdf
 // Revision 0.01 - File Created 
 // Additional Comments:
 // -------------------------------------------------------------------------------
-// 	-> formatter monitor
+// 	-> register monitor
 //////////////////////////////////////////////////////////////////////////////////
 
-`ifndef MCDF_FMT_MON_SV
-`define MCDF_FMT_MON_SV
+`ifndef MCDF_REG_MON_SV
+`define MCDF_REG_MON_SV
 
-class fmt_mon extends uvm_monitor;
+class reg_mon extends uvm_monitor;
 
 	//------------------------------------------
 	// Data, Interface, port  Members
 	//------------------------------------------
-    string  name;
-    virtual fmt_intf vif;
-	uvm_blocking_put_port #(fmt_trans) mon_bp_port;
+    virtual reg_intf vif;
+	uvm_blocking_put_port #(reg_trans) mon_bp_port;
+    uvm_analysis_port #(reg_trans)  mon_ap;
 	//Factory Registration
 	//
-    `uvm_component_utils(fmt_mon)
+    `uvm_component_utils(reg_mon)
  
 	//----------------------------------------------
 	// Methods
 	// ---------------------------------------------
 	// Standard UVM Methods:	
-	extern function new(string name = "fmt_mon", uvm_component parent);
+	extern function new(string name = "reg_mon", uvm_component parent);
 	extern virtual function void build_phase(uvm_phase phase);
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
@@ -40,52 +40,50 @@ class fmt_mon extends uvm_monitor;
 endclass
 
 //Constructor
-function void fmt_mon::new(string name = "fmt_mon", uvm_component parent)
+function void reg_mon::new(string name = "reg_mon", uvm_component parent)
 	super.new(name, parent);
 endfunction
 
 //Build_Phase
-function void fmt_mon::build_phase(uvm_phase phase);
+function void reg_mon::build_phase(uvm_phase phase);
 	super.build_phase(phase);
     mon_bp_port = new("mon_bp_port", this);
+    mon_ap      = new("mon_ap", this);
 endfunction
 
 //Run_Phase
-task fmt_mon::run_phase(uvm_phase phase);
+task reg_mon::run_phase(uvm_phase phase);
     
     this.mon_trans();
     
 endtask
 
 // User Defined Methods:
-function void fmt_mon::set_interface(virtual fmt_intf vif);
+function void reg_mon::set_interface(virtual fmt_intf vif);
     if(vif == null)
         `uvm_fatal(get_type_name(), "Error in getting Interface")
     else 
         this.vif = vif; 
 endfunction
 
-task fmt_mon::mon_trans();
-    fmt_trans pkt;
+task reg_mon::mon_trans();
+    reg_trans pkt;
     string s;
     forever begin
-        @(posedge vif.mon_cb.fmt_start);
+        @(posedge vif.clk iff(vif.rstn && vif.mon_cb.cmd != `IDLE));
         pkt = new();
-        pkt.length  = vif.mon_cb.fmt_length;
-        pkt.ch_id   = vif.mon_cb.fmt_chid;
-        pkt.data    = vif.mon_cb.fmt_data;
-        foreach(pkt.data[i]) begin
+        pkt.cmd     = vif.mon_cb.cmd;
+        pkt.addr    = vif.mon_cb.cmd_addr;
+        if(cmd == `WRITE)
+            pkt.data = vif.mon_cb.cmd_data_m2s;
+        else if (cmd == `READ) begin
             @(posedge vif.clk);
-            pkt.data[i] = vif.mon_cb.fmt_data;
+            pkt.data = vif.mon_cb.cmd_data_s2m;
         end
         mon_bp_port.put(pkt);
-        s = $sformatf("================================================\n");
-        s = {s, $sformatf("%0t %s monitor a packet: \n", $time, this.name);
-        s = {s, $sformatf("length = %0x: \n", pkt.length)};
-        s = {s, $sformatf("chid = %0x: \n", pkt.ch_id)};
-        foreach(pkt.data[i]) s = {s, $sformatf("data[%0d] = %8x \n",i , pkt.data[i])};
-        s = $sformatf("================================================\n");
-        `uvm_info(get_type_name(), s, UVM_MEDIUM)
+        mon_ana.write(pkt);
+
+        `uvm_info(get_type_name(), $sformatf("monitored addr %2x, cmd %2b, data %8x", pkt.cmd, pkt.addr, pkt.data), UVM_MEDIUM)
     end
 endtask
 
