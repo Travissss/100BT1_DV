@@ -4,11 +4,11 @@
 // Create Date: 	02/25/2021 Tue 19:13
 // Filename: 		mcdf_seqlib.sv
 // class Name: 		mcdf_seqlib
-// Project Name: 	ahb2apb_bridge
+// Project Name: 	mcdf
 // Revision 0.01 - File Created 
 // Additional Comments:
 // -------------------------------------------------------------------------------
-// 	-> ahbl sequence library
+// 	-> Sequence library: channel sequence, formatter sequence, register sequence
 //////////////////////////////////////////////////////////////////////////////////
 
 `ifndef MCDF_SEQLIB_SV
@@ -39,21 +39,17 @@ class chnl_data_sequence extends uvm_sequence #(chnl_trans);
 	
 	//Factory Registration
 	//
-    `uvm_object_utils_begin(chnl_trans)
+    `uvm_object_utils_begin(chnl_data_sequence)
         `uvm_field_int          (ch_id      , UVM_ALL_ON)
         `uvm_field_int          (pkt_id     , UVM_ALL_ON)
         `uvm_field_int          (data_nidles, UVM_ALL_ON)
         `uvm_field_int          (pkt_nidles , UVM_ALL_ON)
         `uvm_field_int          (data_size  , UVM_ALL_ON) 
         `uvm_field_int          (ntrans     , UVM_ALL_ON)         
-    `uvm_object_utils_end
-    
+    `uvm_object_utils_end    
     //There is no need to use p_sequencer here
     //`uvm_declare_p_sequencer(chnl_sequencer)
 	
-    //Factory Registration
-	//
-	`uvm_object_utils(chnl_data_sequence)
 
 	//----------------------------------------------
 	// Methods
@@ -112,7 +108,7 @@ class fmt_config_sequence extends uvm_sequence#(fmt_trans);
 	
 	//Factory Registration
 	//
-    `uvm_object_utils_begin(fmt_trans)
+    `uvm_object_utils_begin(fmt_config_sequence)
         `uvm_field_enum (fmt_fifo_t     , fifo      , UVM_ALL_ON)
         `uvm_field_enum (fmt_bandwidth_t, bandwidth , UVM_ALL_ON)        
     `uvm_object_utils_end
@@ -120,9 +116,14 @@ class fmt_config_sequence extends uvm_sequence#(fmt_trans);
     //There is no need to use p_sequencer here
     //`uvm_declare_p_sequencer(chnl_sequencer)
 	
-    //Factory Registration
-	//
-	`uvm_object_utils(fmt_config_sequence)
+    //------------------------------------------
+	// Constraints
+	//------------------------------------------
+    constraint cstr_fmt{
+        soft fifo == MED_FIFO;
+        soft bandwidth == MED_WIDTH;
+    }
+    
 
 	//----------------------------------------------
 	// Methods
@@ -180,35 +181,40 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
 	
 	//Factory Registration
 	//
-    `uvm_object_utils_begin(chnl_trans)
+    `uvm_object_utils_begin(reg_base_sequence)
         `uvm_field_int          (cmd    , UVM_ALL_ON)
         `uvm_field_int          (addr   , UVM_ALL_ON)
         `uvm_field_int          (data   , UVM_ALL_ON)        
     `uvm_object_utils_end
     
     //There is no need to use p_sequencer here
-    //`uvm_declare_p_sequencer(chnl_sequencer)
+    //`uvm_declare_p_sequencer(reg_sequencer)
 	
-    //Factory Registration
-	//
-	`uvm_object_utils(chnl_data_sequence)
+    //------------------------------------------
+	// Constraints
+	//------------------------------------------
+    constraint cstr_reg_base{
+        soft addr   == -1;
+        soft cmd    == -1;
+        soft data   == -1;    
+    }
 
 	//----------------------------------------------
 	// Methods
 	// ---------------------------------------------
 	// Standard UVM Methods:	
-	function new(string name = "chnl_data_sequence");
+	function new(string name = "reg_base_sequence");
 		super.new(name);
 	endfunction
 
 	virtual task body();
     
-        repeat(ntrans) send_trans();
+        repeat() send_trans();
 	
     endtask
 	
 	task send_trans();
-        chnl_trans req, rsp;
+        reg_trans req, rsp;
 		`uvm_do_with(req, {	local:: cmd  >= 0 ->  cmd   == local:: cmd ;
 							local:: addr >= 0 ->  addr  == local:: addr;
 							local:: data >= 0 ->  data	== local:: data;	})                           
@@ -225,12 +231,96 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
         string s;
         s = {s, "After Randomizztion \n"};
         s = {s, "##############################\n"};
-        s = {s, "chnl_data_sequence trans content: \n"};
+        s = {s, "reg_base_sequence trans content: \n"};
         s = {s,sprint()};
         s = {s, "##############################\n"};
         `uvm_info(get_type_name(), s, UVM_MEDIUM)
     endfunction
-		
+	
 endclass
 
+//////////////////////////////////////////////////////////////////////////////////
+// 	-> IDLE sequence for register
+//////////////////////////////////////////////////////////////////////////////////
+class reg_idle_sequence extends reg_base_sequence;
+        //------------------------------------------
+	// Constraints
+	//------------------------------------------
+    constraint cstr{
+        data    == 0;
+        addr    == 0;
+        cmd     == `IDLE;          
+    };
+    
+    
+    //Factory Registration
+	//
+	`uvm_object_utils(reg_idle_sequence)
+    
+	//----------------------------------------------
+	// Methods
+	// ---------------------------------------------
+	// Standard UVM Methods:	
+	function new(string name = "reg_idle_sequence");
+		super.new(name);
+	endfunction
+    
+
+endclass
+    
+//////////////////////////////////////////////////////////////////////////////////
+// 	-> READ sequence for register
+//////////////////////////////////////////////////////////////////////////////////
+class reg_read_sequence extends reg_base_sequence;
+        //------------------------------------------
+	// Constraints
+	//------------------------------------------
+    constraint cstr{
+        cmd     == `READ;          
+    };
+    
+    
+    //Factory Registration
+	//
+	`uvm_object_utils(reg_read_sequence)
+    
+	//----------------------------------------------
+	// Methods
+	// ---------------------------------------------
+	// Standard UVM Methods:	
+	function new(string name = "reg_read_sequence");
+		super.new(name);
+	endfunction
+    
+
+endclass
+
+//////////////////////////////////////////////////////////////////////////////////
+// 	-> WRITE sequence for register
+//////////////////////////////////////////////////////////////////////////////////
+class reg_write_sequence extends reg_base_sequence;
+        //------------------------------------------
+	// Constraints
+	//------------------------------------------
+    constraint cstr{
+        cmd     == `WRITE;          
+    };
+    
+    
+    //Factory Registration
+	//
+	`uvm_object_utils(reg_write_sequence)
+    
+	//----------------------------------------------
+	// Methods
+	// ---------------------------------------------
+	// Standard UVM Methods:	
+	function new(string name = "reg_write_sequence");
+		super.new(name);
+	endfunction
+    
+
+endclass
+
+ 
 `endif
