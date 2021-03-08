@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
-// Create Date: 	003/02/2021 Tue 21:30 
+// Create Date: 	03/02/2021 Tue 21:30 
 // Filename: 		reg_mon.sv
 // class Name: 		reg_mon
 // Project Name: 	mcdf
@@ -20,8 +20,8 @@ class reg_mon extends uvm_monitor;
 	// Data, Interface, port  Members
 	//------------------------------------------
     virtual reg_intf vif;
-	uvm_blocking_put_port #(reg_trans) mon_bp_port;
-    uvm_analysis_port #(reg_trans)  mon_ap;
+	uvm_blocking_put_port 	#(reg_trans) mon_bp_port;
+    uvm_analysis_port 		#(reg_trans) mon_ap;
 	//Factory Registration
 	//
     `uvm_component_utils(reg_mon)
@@ -81,7 +81,7 @@ task reg_mon::mon_trans();
             pkt.data = vif.mon_cb.cmd_data_s2m;
         end
         mon_bp_port.put(pkt);
-        mon_ana.write(pkt);
+        mon_ap.write(pkt);
 
         `uvm_info(get_type_name(), $sformatf("monitored addr %2x, cmd %2b, data %8x", pkt.cmd, pkt.addr, pkt.data), UVM_MEDIUM)
     end
