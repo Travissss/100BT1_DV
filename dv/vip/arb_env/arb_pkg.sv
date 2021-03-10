@@ -14,6 +14,7 @@
 `ifndef MCDF_ARB_SV
 `define MCDF_ARB_SV
 
+`include "arb_intf.sv"
 package arb_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
@@ -52,7 +53,7 @@ package arb_pkg;
         // ... ignored
     endclass
 
-    class arb_agent extends uvm_agent;
+    class arb_agt extends uvm_agent;
         `uvm_component_utils(arb_agent)
         function new (string name = "arb_agent", uvm_component parent);
             super.new(name, parent);

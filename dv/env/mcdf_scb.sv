@@ -18,7 +18,7 @@
 `uvm_blocking_put_imp_decl(_chnl0)
 `uvm_blocking_put_imp_decl(_chnl1)
 `uvm_blocking_put_imp_decl(_chnl2)
-`uvm_blocking_put_inp_decl(_reg)
+`uvm_blocking_put_imp_decl(_reg)
 `uvm_blocking_put_imp_decl(_fmt)
 
 `uvm_blocking_get_peek_imp_decl(_chnl0)
@@ -245,7 +245,7 @@ function int get_slave_id_with_prio();
 	int id = 1;
 	int prio = 99;
 	foreach(this.arb_vif.mon_cb.slv_prios[i]) begin
-		if(this.arb_vif.mon_cb.slv_prio[i] < prio && this.mon_cb.slv_reqs[i])begin
+		if(this.arb_vif.mon_cb.slv_prios[i] < prio && this.mon_cb.slv_reqs[i])begin
 			id = i;
 			prio = this.arb_vif.mon_cb.slv_prios[i];
 		end

@@ -4,7 +4,7 @@
 // Create Date: 	03/07/2021 Sun 17:20
 // Filename: 		mcdf_cov.sv
 // class Name: 		mcdf_cov
-// Project Name: 	ahb2apb_bridge
+// Project Name: 	mcdf
 // Revision 0.01 - File Created 
 // Additional Comments:
 // -------------------------------------------------------------------------------
@@ -351,7 +351,7 @@ endtask
 task mcdf_cov::do_arbiter_sample();
 	forever begin
 		@(posedge arb_vif.clk iff arb_vif.rstn);
-		if(arb_vif.slv_req[0]!==0 || arb_vif.slv_req[1]!==0 || arb_vif.slv_req[2]!==0)
+		if(arb_vif.slv_reqs[0]!==0 || arb_vif.slv_reqs[1]!==0 || arb_vif.slv_reqs[2]!==0)
 			cg_arbiter_priority.sample();
 	end
 endtask
