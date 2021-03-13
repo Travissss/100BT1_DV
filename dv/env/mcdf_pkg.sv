@@ -33,6 +33,11 @@ typedef struct packed{
 
 typedef enum {RW_LEN, RW_PRIO, RW_EN, RD_AVAIL} mcdf_field_t;
 
+`include "mcdf_cov.sv"
+`include "mcdf_env.sv"
 
+`include "mcdf_refmod.sv"
+`include "mcdf_scb.sv"
+`include "mcdf_vsqr.sv"
 
 endpackage

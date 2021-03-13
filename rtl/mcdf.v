@@ -3,31 +3,32 @@
 //------------------------------------------------------------------------------------------------------------------------//
 `include "param_def.v"
 module mcdf(
-  input clk_i,
-  input rstn_i,
+  input 						clk_i		,
+  input 						rstn_i		,
 
-  input [1:0]  cmd_i,
-  input [`ADDR_WIDTH-1:0] cmd_addr_i,
-  input [`CMD_DATA_WIDTH-1:0] cmd_data_i,
-  output[`CMD_DATA_WIDTH-1:0] cmd_data_o,
+  input [1:0]  					cmd_i		,
+  input [`ADDR_WIDTH-1:0] 		cmd_addr_i	,
+  input [`CMD_DATA_WIDTH-1:0] 	cmd_data_i	,
+  output[`CMD_DATA_WIDTH-1:0] 	cmd_data_o	,
 
-  input [31:0] ch0_data_i,
-  input  ch0_vld_i,
-  input [31:0] ch1_data_i,
-  input  ch1_vld_i,
-  input [31:0] ch2_data_i,
-  input  ch2_vld_i,
-  output  ch0_ready_o,
-  output  ch1_ready_o,
-  output  ch2_ready_o,
+  input [31:0] 					ch0_data_i	,
+  input  						ch0_vld_i	,
+  input [31:0] 					ch1_data_i	,
+  input  						ch1_vld_i	,
+  input [31:0] 					ch2_data_i	,
+  input  						ch2_vld_i	,
+  output 						ch0_ready_o	,
+  output 						ch1_ready_o	,
+  output 						ch2_ready_o	,
 
-  input  fmt_grant_i,
-  output [1:0] fmt_chid_o,
-  output fmt_req_o,
-  output [5:0]  fmt_length_o,
-  output [31:0] fmt_data_o,
-  output fmt_start_o,
-  output fmt_end_o );
+  input  						fmt_grant_i	,
+  output [1:0] 					fmt_chid_o	,
+  output 						fmt_req_o	,
+  output [5:0]  				fmt_length_o,
+  output [31:0] 				fmt_data_o	,
+  output 						fmt_start_o	,
+  output 						fmt_end_o 
+  );
 
 
 //--------------register To slave_fifo

@@ -182,7 +182,7 @@ endtask
 
 // User Defined Methods:
 function void mcdf_scb::set_interface(	virtual mcdf_intf 	mcdf_vif,
-										virtual chnl_intf 	chnl_vifs,
+										virtual chnl_intf 	chnl_vifs[3],
 										virtual arb_intf	arb_vif,
 									);
     //set refmode interface
