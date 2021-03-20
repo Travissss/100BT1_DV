@@ -93,7 +93,7 @@ task reg_drv::do_drive();
     `uvm_info("reg_drv::", $sformatf("run_phase debug:get out from run_phase do_drive() "), UVM_HIGH)
 endtask
 
-task reg_drv::reg_write(input reg_trans pkt);
+task reg_drv::reg_write(reg_trans pkt);
     @(posedge vif.clk iff vif.rstn);
     case(pkt.cmd)
         `WRITE:begin
@@ -103,10 +103,10 @@ task reg_drv::reg_write(input reg_trans pkt);
         end
         
         `READ: begin
-            vif.cmd         <= pkt.cmd         ;       
-            vif.cmd_addr    <= pkt.addr    ;
-            repeat(2) @(negedge vif.clk);
-            pkt.data        <= vif.cmd_data_s2m;     
+            vif.drv_cb.cmd         <= pkt.cmd         ;       
+            vif.drv_cb.cmd_addr    <= pkt.addr    ;
+            repeat(2) @(neggyGedge vif.clk);
+            pkt.data        = vif.cmd_data_s2m;     
         end
         
         `IDLE: this.reg_idle();
@@ -116,9 +116,9 @@ endtask
 
 task reg_drv::reg_idle();
     @(posedge vif.clk);
-        vif.cmd             <= `IDLE;
-        vif.cmd_addr        <= 8'b0;
-        vif.cmd_data_m2s    <= 32'b0;
+        vif.drv_cb.cmd             <= `IDLE;
+        vif.drv_cb.cmd_addr        <= 8'b0;
+        vif.drv_cb.cmd_data_m2s    <= 32'b0;
 endtask
 
 `endif
