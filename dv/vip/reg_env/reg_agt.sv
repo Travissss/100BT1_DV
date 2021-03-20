@@ -21,9 +21,9 @@ class reg_agt extends uvm_agent;
 	//------------------------------------------
     virtual reg_intf vif;
     
-	fmt_drv    drv_i;
-    fmt_mon    mon_i;
-    fmt_sqr    sqr_i;
+	reg_drv    drv_i;
+    reg_mon    mon_i;
+    reg_sqr    sqr_i;
 	//Factory Registration
 	//
     `uvm_component_utils(reg_agt)
@@ -35,14 +35,13 @@ class reg_agt extends uvm_agent;
 	extern function new(string name = "reg_agt", uvm_component parent);
 	extern virtual function void build_phase(uvm_phase phase);
     extern virtual function void connect_phase(uvm_phase phase);
-	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
     extern virtual function void set_interface(virtual reg_intf vif);
 
 endclass
 
 //Constructor
-function void reg_agt::new(string name = "reg_agt", uvm_component parent)
+function reg_agt::new(string name = "reg_agt", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -50,19 +49,19 @@ endfunction
 function void reg_agt::build_phase(uvm_phase phase);
 
 	super.build_phase(phase);
-    drv_i = fmt_drv::type_id::create("drv_i", this);
-    mon_i = fmt_mon::type_id::create("mon_i", this);
-    sqr_i = fmt_sqr::type_id::create("sqr_i", this);
+    drv_i = reg_drv::type_id::create("drv_i", this);
+    mon_i = reg_mon::type_id::create("mon_i", this);
+    sqr_i = reg_sqr::type_id::create("sqr_i", this);
     
 endfunction
 
 //Connect_Phase
-task reg_agt::connect_phase(uvm_phase phase);
+function void reg_agt::connect_phase(uvm_phase phase);
 
     super.connect_phase(phase);
     drv_i.seq_item_port.connect(sqr_i.seq_item_export);
     
-endtask
+endfunction
 
 // User Defined Methods:
 function void reg_agt::set_interface(virtual reg_intf vif);
@@ -70,7 +69,7 @@ function void reg_agt::set_interface(virtual reg_intf vif);
     this.vif = vif;
     drv_i.set_interface(vif);
     mon_i.set_interface(vif);
-    
+	
 endfunction
 
 `endif

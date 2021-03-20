@@ -34,7 +34,7 @@ class reg_drv extends uvm_driver #(reg_trans);
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
     extern virtual function void set_interface(virtual reg_intf vif);
-    extern task do_reset    (virtual reg_intf vif);
+    extern task do_reset    ();
     extern task do_drive    ();
     extern task reg_write   (input reg_trans pkt);
     extern task reg_idle    ();
@@ -42,7 +42,7 @@ class reg_drv extends uvm_driver #(reg_trans);
 endclass
 
 //Constructor
-function void reg_drv::new(string name = "reg_drv", uvm_component parent)
+function reg_drv::new(string name = "reg_drv", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -53,10 +53,12 @@ endfunction
 
 //Run_Phase
 task reg_drv::run_phase(uvm_phase phase);
+    `uvm_info("reg_drv::", $sformatf("run_phase debug:get into run_phase fork join "), UVM_HIGH)
     fork
         this.do_reset();
         this.do_drive();
     join
+    `uvm_info("reg_drv::", $sformatf("run_phase debug:get out from run_phase fork join "), UVM_HIGH)
 endtask
 
 // User Defined Methods:
@@ -74,6 +76,7 @@ task reg_drv::do_reset();
         vif.cmd_addr        <= 8'b0;
         vif.cmd_data_m2s    <= 32'b0;
     end
+    `uvm_info("reg_drv::", $sformatf("run_phase debug:get out from run_phase do_reset() "), UVM_HIGH)
 endtask
 
 task reg_drv::do_drive();
@@ -87,10 +90,11 @@ task reg_drv::do_drive();
         rsp.set_sequence_id(req.get_sequence_id());
         seq_item_port.item_done(rsp);
     end
+    `uvm_info("reg_drv::", $sformatf("run_phase debug:get out from run_phase do_drive() "), UVM_HIGH)
 endtask
 
 task reg_drv::reg_write(input reg_trans pkt);
-    @(posedge vif.clk iff vif.rstn)
+    @(posedge vif.clk iff vif.rstn);
     case(pkt.cmd)
         `WRITE:begin
             vif.drv_cb.cmd             <= pkt.cmd ;       
@@ -105,12 +109,9 @@ task reg_drv::reg_write(input reg_trans pkt);
             pkt.data        <= vif.cmd_data_s2m;     
         end
         
-        `IDLE:begin
-        
-        
-        end
-
-
+        `IDLE: this.reg_idle();
+	endcase
+    `uvm_info("reg_drv::", $sformatf("run_phase debug:get out from run_phase reg_write() "), UVM_HIGH)
 endtask
 
 task reg_drv::reg_idle();

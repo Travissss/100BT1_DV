@@ -13,7 +13,7 @@
 
 `include "param_def.v"
 
-package mcdf_pkg
+package mcdf_pkg;
 
 import uvm_pkg::*;
 `include "uvm_macros.svh"
@@ -29,15 +29,15 @@ typedef struct packed{
     bit [1:0]   prio;
     bit         en;
     bit [7:0]   avail;
-} mcdf_reg_t
+} mcdf_reg_t;
 
 typedef enum {RW_LEN, RW_PRIO, RW_EN, RD_AVAIL} mcdf_field_t;
 
 `include "mcdf_cov.sv"
-`include "mcdf_env.sv"
-
 `include "mcdf_refmod.sv"
+
 `include "mcdf_scb.sv"
 `include "mcdf_vsqr.sv"
+`include "mcdf_env.sv"
 
 endpackage

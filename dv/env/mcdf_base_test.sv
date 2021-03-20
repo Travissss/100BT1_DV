@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
-// Create Date: 	03/13/2021 Sun 19:31
+// Create Date: 	03/13/2021 Sat 19:31
 // Filename: 		mcdf_base_test.sv
 // class Name: 		mcdf_base_test
 // Project Name: 	mcdf
@@ -41,7 +41,7 @@ class mcdf_base_test extends uvm_test;
 	//Factory Registration
 	//
 	`uvm_component_utils(mcdf_base_test)
-
+	
 	//----------------------------------------------
 	// Methods
 	// ---------------------------------------------
@@ -53,16 +53,16 @@ class mcdf_base_test extends uvm_test;
 	extern virtual task run_phase(uvm_phase phase);
 	extern virtual function void report_phase(uvm_phase phase);
 	// User Defined Methods:
-	extern task set_interface(	virtual chnl_intf 	chnl0_vif	,
-								virtual chnl_intf 	chnl1_vif	,
-								virtual chnl_intf 	chnl2_vif	,
-								virtual reg_intf 	reg_vif		,
-								virtual arb_intf 	arb_vif		,
-								virtual fmt_intf 	fmt_vif		,
-								virtual mcdf_intf 	mcdf_vif	
+	extern virtual function void set_interface(	virtual chnl_intf 	chnl0_vif	,
+										virtual chnl_intf 	chnl1_vif	,
+										virtual chnl_intf 	chnl2_vif	,
+										virtual reg_intf 	reg_vif		,
+										virtual arb_intf 	arb_vif		,
+										virtual fmt_intf 	fmt_vif		,
+										virtual mcdf_intf 	mcdf_vif	
 	);
-	extern task run_top_virtual_sequence();
-	extern function int num_uvm_errors();
+	extern virtual task run_top_virtual_sequence();
+	extern virtual function int num_uvm_errors();
 endclass
 
 
@@ -80,13 +80,13 @@ function void mcdf_base_test::build_phase(uvm_phase phase);
 	super.build_phase(phase);
 	env_i = mcdf_env::type_id::create("env_i", this);
 	
-	if(!uvm_config_db#(virtual chnl_intf)::get(this, "", "chnl0_vif", chnl0_vif))
+	if(!uvm_config_db#(virtual chnl_intf)::get(this, "", "ch0_vif", chnl0_vif))
 		`uvm_fatal("No chnl0_vif", "chnl0_vif is not set!")
 		
-	if(!uvm_config_db#(virtual chnl_intf)::get(this, "", "chnl1_vif", chnl1_vif))
+	if(!uvm_config_db#(virtual chnl_intf)::get(this, "", "ch1_vif", chnl1_vif))
 		`uvm_fatal("No chnl1_vif", "chnl1_vif is not set!")
 		
-	if(!uvm_config_db#(virtual chnl_intf)::get(this, "", "chnl2_vif", chnl2_vif))
+	if(!uvm_config_db#(virtual chnl_intf)::get(this, "", "ch2_vif", chnl2_vif))
 		`uvm_fatal("No chnl2_vif", "chnl2_vif is not set!")
 	
 	if(!uvm_config_db#(virtual reg_intf)::get(this,"","reg_vif", reg_vif)) begin
@@ -107,7 +107,7 @@ endfunction
 //connect_phase
 function void mcdf_base_test::connect_phase(uvm_phase phase);
 	super.connect_phase(phase);
-	set_interface(chnl0_vif, chnl1_vif, chnl2_vif, reg_vif, fmt_vif, arb_vif, mcdf_vif);
+	set_interface(chnl0_vif, chnl1_vif, chnl2_vif, reg_vif, arb_vif, fmt_vif, mcdf_vif);
 
 endfunction
 
@@ -115,16 +115,19 @@ endfunction
 function void mcdf_base_test::end_of_elaboration_phase(uvm_phase phase);
 	super.end_of_elaboration_phase(phase);
 	uvm_root::get().set_report_verbosity_level_hier(UVM_HIGH);
-	uvm_root::get().set_report_max_quit_count(1);
-	uvm_root.get().set_timeout(10ms);
+	uvm_root::get().set_report_max_quit_count(5);
+	//uvm_root::get().set_timeout(15us);
 endfunction
 
 //run_phase
 task mcdf_base_test::run_phase(uvm_phase phase);
 	phase.raise_objection(this);
+		`uvm_info(get_type_name(), "Simulation in base test start!", UVM_LOW)
 	run_top_virtual_sequence();
+		`uvm_info(get_type_name(), "Simulation in base test end!", UVM_LOW)
 	
 	phase.drop_objection(this);
+	//phase.phase_done.set_drain_time(this, 10us);
 endtask
 
 function void mcdf_base_test::report_phase(uvm_phase phase);
@@ -137,7 +140,7 @@ function void mcdf_base_test::report_phase(uvm_phase phase);
 	end
 endfunction
 
-task mcdf_base_test::set_interface(	virtual chnl_intf 	chnl0_vif	,
+function void mcdf_base_test::set_interface(	virtual chnl_intf 	chnl0_vif	,
 									virtual chnl_intf 	chnl1_vif	,
 									virtual chnl_intf 	chnl2_vif	,
 									virtual reg_intf 	reg_vif		,
@@ -149,12 +152,16 @@ task mcdf_base_test::set_interface(	virtual chnl_intf 	chnl0_vif	,
 	env_i.chnl_agt_i[1].set_interface(chnl1_vif);
 	env_i.chnl_agt_i[2].set_interface(chnl2_vif);
 	env_i.fmt_agt_i.set_interface(fmt_vif);
-	env_i.reg_vif.set_interface(reg_vif);
-	env_i.arb_intf.set_interface(arb_intf);
+	env_i.reg_agt_i.set_interface(reg_vif);
 	
 	env_i.scb_i.set_interface(mcdf_vif, '{chnl0_vif, chnl1_vif, chnl2_vif}, arb_vif);
-	env_i.cov_i.set_interface('{chnl0_vif, chnl1_vif, chnl2_vif}, reg_vif, arb_vif, fmt_vif, mcdf_vif)；
+	env_i.cov_i.set_interface('{chnl0_vif, chnl1_vif, chnl2_vif}, reg_vif, arb_vif, fmt_vif, mcdf_vif);
 	env_i.vsqr_i.set_interface(mcdf_vif);
+endfunction
+
+task mcdf_base_test::run_top_virtual_sequence();
+	//defined in child test;
+
 endtask
 
 function int mcdf_base_test::num_uvm_errors();

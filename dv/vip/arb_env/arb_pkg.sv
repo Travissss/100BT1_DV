@@ -54,7 +54,7 @@ package arb_pkg;
     endclass
 
     class arb_agt extends uvm_agent;
-        `uvm_component_utils(arb_agent)
+        `uvm_component_utils(arb_agt)
         function new (string name = "arb_agent", uvm_component parent);
             super.new(name, parent);
         endfunction

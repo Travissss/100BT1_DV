@@ -22,24 +22,24 @@ interface fmt_intf(input clk, input rstn);
 	
 	clocking drv_cb@(posedge clk);
 		// default input #1 output #1;
-       input    	fmt_chid;
-       input    	fmt_req;
-       input    	fmt_length;       
-       input 		fmt_data; 
-       input    	fmt_start;
-       input     	fmt_end;
-       output     	fmt_grant;
+        output [1:0]    fmt_chid;
+        output          fmt_req;
+        output [5:0]    fmt_length;       
+        output [31:0]	fmt_data; 
+        output 		    fmt_start;
+        output 		    fmt_end;
+        input           fmt_grant;
 	endclocking
 	
-	clocking mon_cb@(posedge clk);
+	clocking mon_cb@(posedge hclk);
 		// default input #1 output #1;
-        input		fmt_chid;
-        input		fmt_req;
-        input		fmt_length;
-        input		fmt_data; 
-        input		fmt_start;
-        input		fmt_end;
-        input		fmt_grant;
+        input  [1:0]    fmt_chid;
+        input           fmt_req;
+        input  [5:0]    fmt_length;
+        input  [31:0]	fmt_data; 
+        input  		    fmt_start;
+        input  		    fmt_end;
+        input           fmt_grant;
 	endclocking
 
 endinterface

@@ -29,7 +29,7 @@ class fmt_trans extends uvm_sequence_item;
         `uvm_field_enum         (fmt_fifo_t     , fmt_fifo      , UVM_ALL_ON)    
         `uvm_field_enum         (fmt_bandwidth_t, fmt_bandwidth , UVM_ALL_ON) 
         `uvm_field_array_int    (data       , UVM_ALL_ON)
-        `uvm_field_array_int    (length     , UVM_ALL_ON)
+        `uvm_field_int    		(length     , UVM_ALL_ON)
         `uvm_field_int          (ch_id      , UVM_ALL_ON)
         `uvm_field_int          (rsp        , UVM_ALL_ON)          
     `uvm_object_utils_end
@@ -50,10 +50,6 @@ class fmt_trans extends uvm_sequence_item;
 endclass
 
 //Constructor
-function void fmt_trans::new(string name = "fmt_trans")
+function fmt_trans::new(string name = "fmt_trans");
 	super.new(name);
 endfunction
-
-
-
-`endif

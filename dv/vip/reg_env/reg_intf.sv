@@ -11,7 +11,7 @@
 // 	-> Connect medias in UVC
 //////////////////////////////////////////////////////////////////////////////////
 
-interface fmt_intf(input clk, input rstn);
+interface reg_intf(input clk, input rstn);
     logic   [1:0]   cmd;
     logic   [7:0]   cmd_addr;    
 	logic	[31:0]	cmd_data_s2m;
@@ -20,19 +20,19 @@ interface fmt_intf(input clk, input rstn);
 	
 	clocking drv_cb@(posedge clk);
 		// default input #1 output #1;
-        output  [1:0]   cmd;  
-        output  [7:0]   cmd_addr;    
-        output  [31:0]	cmd_data_s2m;
-        input   [31:0]	cmd_data_m2s;
+        output 		cmd;  
+        output 		cmd_addr;    
+        output 		cmd_data_m2s;
+        input  		cmd_data_s2m;
 
 	endclocking
 	
-	clocking mon_cb@(posedge hclk);
+	clocking mon_cb@(posedge clk);
 		// default input #1 output #1;
-        input   [1:0]   cmd;  
-        input   [7:0]   cmd_addr;    
-        input   [31:0]	cmd_data_s2m;
-        input   [31:0]	cmd_data_m2s;
+        input  		cmd;  
+        input  		cmd_addr;    
+        input  		cmd_data_s2m;
+        input  		cmd_data_m2s;
 
 	endclocking
 

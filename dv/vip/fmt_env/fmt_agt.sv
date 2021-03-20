@@ -35,14 +35,13 @@ class fmt_agt extends uvm_agent;
 	extern function new(string name = "fmt_agt", uvm_component parent);
 	extern virtual function void build_phase(uvm_phase phase);
     extern virtual function void connect_phase(uvm_phase phase);
-	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
     extern virtual function void set_interface(virtual fmt_intf vif);
 
 endclass
 
 //Constructor
-function void fmt_agt::new(string name = "fmt_agt", uvm_component parent)
+function fmt_agt::new(string name = "fmt_agt", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -57,12 +56,12 @@ function void fmt_agt::build_phase(uvm_phase phase);
 endfunction
 
 //Run_Phase
-task fmt_agt::connect_phase(uvm_phase phase);
+function void fmt_agt::connect_phase(uvm_phase phase);
 
     super.connect_phase(phase);
     drv_i.seq_item_port.connect(sqr_i.seq_item_export);
     
-endtask
+endfunction
 
 // User Defined Methods:
 function void fmt_agt::set_interface(virtual fmt_intf vif);

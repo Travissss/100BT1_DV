@@ -37,7 +37,7 @@ class mcdf_scb extends uvm_component;
 	
 	local virtual chnl_intf	chnl_vifs[3];
 	local virtual arb_intf	arb_vif;
-	local virtual mcdf_intf	mcdf_vif
+	local virtual mcdf_intf	mcdf_vif;
 	local mcdf_refmod		refmod;
     
 	//connect with channel monitor, formatter monitor and register monitor
@@ -53,7 +53,7 @@ class mcdf_scb extends uvm_component;
     //connect with reference model reg port
 	uvm_blocking_get_imp_reg		#(reg_trans	, mcdf_scb)	reg_bg_imp;
 	//connect with reference model uvm_tlm_fifo
-	uvm_blocking_get_port			#(fmt_trans	, mcdf_scb)	exp_bg_port;
+	uvm_blocking_get_port			#(fmt_trans)			exp_bg_port[3];
 	
 	//mailbox definition for imp method
 	mailbox #(mon_data_t) 	chnl_mbs[3];
@@ -71,10 +71,12 @@ class mcdf_scb extends uvm_component;
 	extern virtual function void build_phase(uvm_phase phase);
 	extern virtual function void connect_phase(uvm_phase phase);
 	extern virtual task run_phase(uvm_phase phase);
-	extern virtual task report_phase(uvm_phase phase);
+	extern virtual function void report_phase(uvm_phase phase);
 	
 	// User Defined Methods:
-    extern virtual function void set_interface(virtual mcdf_intf vif);
+    extern virtual function void set_interface(	virtual mcdf_intf 	mcdf_vif	,
+												virtual chnl_intf 	chnl_vifs[3],
+												virtual arb_intf	arb_vif);
     extern task do_channel_disable_check(int id);
     extern task do_arbiter_priority_check();
     extern task do_data_compare();
@@ -102,7 +104,7 @@ endclass
 // Methods realization
 //////////////////////////////////////////////////////////////////////////////////
 //Constructor
-function void mcdf_scb::new(string name = "mcdf_scb", uvm_component parent)
+function mcdf_scb::new(string name = "mcdf_scb", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -112,7 +114,7 @@ function void mcdf_scb::build_phase(uvm_phase phase);
 	err_cnt		= 0;
 	total_cnt	= 0;
 	foreach(chnl_cnt[i]) chnl_cnt[i] = 0;
-	refmod	= mcdf_refmod::type_id::create("refmod", this)
+	refmod	= mcdf_refmod::type_id::create("refmod", this);
 	
 	chnl0_bp_imp 	= new("chnl0_bp_imp", this);
 	chnl1_bp_imp 	= new("chnl1_bp_imp", this);
@@ -136,14 +138,14 @@ function void mcdf_scb::build_phase(uvm_phase phase);
 endfunction
 
 //connect_phase
-function void mcdf_scb::connect_phase(uvm_ phase);
+function void mcdf_scb::connect_phase(uvm_phase phase);
 	super.connect_phase(phase);
 	refmod.reg_bg_port.connect(reg_bg_imp);
 	refmod.in_bgpk_ports[0].connect(chnl0_bgpk_imp);
 	refmod.in_bgpk_ports[1].connect(chnl1_bgpk_imp);
 	refmod.in_bgpk_ports[2].connect(chnl2_bgpk_imp);
 
-	foreach(exp_bg_port[i]) exp_bg_port.connect(refmod.out_tlm_fifos[i].blocking_get_export);
+	foreach(exp_bg_port[i]) exp_bg_port[i].connect(refmod.out_tlm_fifos[i].blocking_get_export);
 endfunction
                          
 //run_phase
@@ -155,35 +157,34 @@ task mcdf_scb::run_phase(uvm_phase phase);
 		do_arbiter_priority_check();
 		do_data_compare();
 		//what is this run for?
-		refmod.run();
+		//refmod.run();
     join
 endtask
-
-task mcdf_scb::report_phase(uvm_phase phase);
+	
+function void mcdf_scb::report_phase(uvm_phase phase);
 	string s;
 	super.report_phase(phase);
-	s = "\n--------------------------------------------------\n"
+	s = "\n--------------------------------------------------\n";
 	s = {s, "MCDF SCOREBOARD SUMMARY \n"};
 	s = {s, $sformatf("total comparison count: %0d \n", total_cnt)};
 	foreach(chnl_cnt[i]) s = {s, $sformatf("chnl[%0d] comparison count: %0d \n", i, chnl_cnt[i])};
-	s = {s, $sformatf("total error count: %0d \n", err_cnt};
+	s = {s, $sformatf("total error count: %0d \n", err_cnt)};
 	
 	foreach(chnl_mbs[i])begin
 		if(chnl_mbs[i].num() != 0)
 			s = {s, $sformatf("WARNING::chnl_mbs[%0d] is not empty! size is %0d \n", i, chnl_mbs[i].num())};
-	
-	foreach(fmt_mb[i])begin
-		if(fmt_mb[i].num() != 0)
-			s = {s, $sformatf("WARNING::fmt_mb[%0d] is not empty! size is %0d \n", i, fmt_mb[i].num())};	
 	end
-	s = {s, "\n--------------------------------------------------\n"}
+	if(fmt_mb.num() != 0)
+		s = {s, $sformatf("WARNING::fmt_mb is not empty! size is %0d \n", fmt_mb.num())};	
+	s = {s, "\n--------------------------------------------------\n"};
 	`uvm_info(get_type_name(), s, UVM_LOW)
-endtask
+	
+endfunction
 
 // User Defined Methods:
 function void mcdf_scb::set_interface(	virtual mcdf_intf 	mcdf_vif,
 										virtual chnl_intf 	chnl_vifs[3],
-										virtual arb_intf	arb_vif,
+										virtual arb_intf	arb_vif
 									);
     //set refmode interface
 	if(mcdf_vif == null)
@@ -193,7 +194,7 @@ function void mcdf_scb::set_interface(	virtual mcdf_intf 	mcdf_vif,
 		this.refmod.set_interface(mcdf_vif);
 	end
 	
-	if(chnl_vifs == null)
+	if(chnl_vifs[0] == null | chnl_vifs[1] == null | chnl_vifs[2] == null)
         `uvm_fatal(get_type_name(), "Error in getting chnl_vifs")
     else
         this.chnl_vifs = chnl_vifs; 
@@ -207,8 +208,8 @@ endfunction
 
 task mcdf_scb::do_channel_disable_check(int id);
 	forever begin
-		@(posedge this.mcdf_vif.clk iff (this.mcdf_vif.rstn && this.mcdf_vif.mon_cb.chnl_en[id]));
-		if(this.chnl_vifs[id].mon_cb.ch_ready === 1)
+		@(posedge this.mcdf_vif.clk iff (this.mcdf_vif.rstn && this.mcdf_vif.mon_cb.chnl_en[id]===0));
+		if(this.chnl_vifs[id].mon_cb.ch_valid===1 && this.chnl_vifs[id].mon_cb.ch_ready === 1)
 			`uvm_error(get_type_name(), "Error! when channel is disabled, ready signal is raised high")
 	end
 endtask
@@ -218,7 +219,7 @@ task mcdf_scb::do_arbiter_priority_check();
 	@(posedge this.arb_vif.clk iff (this.arb_vif.rstn && this.arb_vif.mon_cb.f2a_id_req === 1));
 	id = get_slave_id_with_prio();
 	if(id >= 0)begin
-		@(posedge this.arb_if.clk);
+		@(posedge this.arb_vif.clk);
 		if(this.arb_vif.mon_cb.a2s_acks[id] !== 1)
 			`uvm_error(get_type_name(), $sformatf("Error! arbiter receive req from formatter, requeset for channel[%0d] is not granted by arbiter", id))
 	end
@@ -237,20 +238,20 @@ task mcdf_scb::do_data_compare();
 			this.err_cnt++;
 			`uvm_error("scoreboard", $sformatf("total count %0d data compare failed", total_cnt))
 		end else
-			`uvm_info("[CMPSUC]",$sformatf("total count %0d data compare passed", this.total_count), UVM_LOW)
+			`uvm_info("[CMPSUC]",$sformatf("total count %0d data compare passed", this.total_cnt), UVM_LOW)
 	end
 endtask
 
-function int get_slave_id_with_prio();
-	int id = 1;
+function int mcdf_scb::get_slave_id_with_prio();
+	int id = -1;
 	int prio = 99;
 	foreach(this.arb_vif.mon_cb.slv_prios[i]) begin
-		if(this.arb_vif.mon_cb.slv_prios[i] < prio && this.mon_cb.slv_reqs[i])begin
+		if(this.arb_vif.mon_cb.slv_prios[i] < prio && this.arb_vif.mon_cb.slv_reqs[i])begin
 			id = i;
 			prio = this.arb_vif.mon_cb.slv_prios[i];
 		end
-		return id;
 	end
+	return id;
 endfunction	
 // TLM implementation define methods
 task mcdf_scb:: put_chnl0(mon_data_t t);

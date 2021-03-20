@@ -1,4 +1,23 @@
 
+interface fmt_intf(input clk, input rstn);
+  logic        fmt_grant;
+  logic [1:0]  fmt_chid;
+  logic        fmt_req;
+  logic [5:0]  fmt_length;
+  logic [31:0] fmt_data;
+  logic        fmt_start;
+  logic        fmt_end;
+  clocking drv_cb @(posedge clk);
+    default input #1ns output #1ns;
+    input fmt_chid, fmt_req, fmt_length, fmt_data, fmt_start;
+    output fmt_grant;
+  endclocking
+  clocking mon_cb @(posedge clk);
+    default input #1ns output #1ns;
+    input fmt_grant, fmt_chid, fmt_req, fmt_length, fmt_data, fmt_start;
+  endclocking
+endinterface
+
 package fmt_pkg;
   import uvm_pkg::*;
   `include "uvm_macros.svh"
@@ -35,16 +54,16 @@ package fmt_pkg;
   endclass
 
   // formatter driver
-  class fmt_driver extends uvm_driver #(fmt_trans);
+  class fmt_drv extends uvm_driver #(fmt_trans);
     local virtual fmt_intf intf;
 
     local mailbox #(bit[31:0]) fifo;
     local int fifo_bound;
     local int data_consum_peroid;
 
-    `uvm_component_utils(fmt_driver)
+    `uvm_component_utils(fmt_drv)
 
-    function new (string name = "fmt_driver", uvm_component parent);
+    function new (string name = "fmt_drv", uvm_component parent);
       super.new(name, parent);
       this.fifo = new();
       this.fifo_bound = 4096;
@@ -106,12 +125,12 @@ package fmt_pkg;
           if((this.fifo_bound-this.fifo.num()) >= intf.fmt_length)
             break;
         end
-        intf.drv_ck.fmt_grant <= 1;
+        intf.drv_cb.fmt_grant <= 1;
         @(posedge intf.fmt_start);
         fork
           begin
             @(posedge intf.clk);
-            intf.drv_ck.fmt_grant <= 0;
+            intf.drv_cb.fmt_grant <= 0;
           end
         join_none
         repeat(intf.fmt_length) begin
@@ -128,14 +147,14 @@ package fmt_pkg;
         repeat($urandom_range(1, this.data_consum_peroid)) @(posedge intf.clk);
       end
     endtask
-  endclass: fmt_driver
+  endclass: fmt_drv
 
-  class fmt_sequencer extends uvm_sequencer #(fmt_trans);
-    `uvm_component_utils(fmt_sequencer)
-    function new (string name = "fmt_sequencer", uvm_component parent);
+  class fmt_sqr extends uvm_sequencer #(fmt_trans);
+    `uvm_component_utils(fmt_sqr)
+    function new (string name = "fmt_sqr", uvm_component parent);
       super.new(name, parent);
     endfunction
-  endclass: fmt_sequencer
+  endclass: fmt_sqr
 
   
   class fmt_config_sequence extends uvm_sequence #(fmt_trans);
@@ -150,7 +169,7 @@ package fmt_pkg;
       `uvm_field_enum(fmt_fifo_t, fifo, UVM_ALL_ON)
       `uvm_field_enum(fmt_bandwidth_t, bandwidth, UVM_ALL_ON)
     `uvm_object_utils_end
-    `uvm_declare_p_sequencer(fmt_sequencer)
+    `uvm_declare_p_sequencer(fmt_sqr)
 
     function new (string name = "fmt_config_sequence");
       super.new(name);
@@ -184,14 +203,14 @@ package fmt_pkg;
   endclass: fmt_config_sequence
 
   // formatter monitor
-  class fmt_monitor extends uvm_monitor;
+  class fmt_mon extends uvm_monitor;
     local string name;
     local virtual fmt_intf intf;
     uvm_blocking_put_port #(fmt_trans) mon_bp_port;
 
-    `uvm_component_utils(fmt_monitor)
+    `uvm_component_utils(fmt_mon)
 
-    function new(string name="fmt_monitor", uvm_component parent);
+    function new(string name="fmt_mon", uvm_component parent);
       super.new(name, parent);
       mon_bp_port = new("mon_bp_port", this);
     endfunction
@@ -211,14 +230,14 @@ package fmt_pkg;
       fmt_trans m;
       string s;
       forever begin
-        @(posedge intf.mon_ck.fmt_start);
+        @(posedge intf.mon_cb.fmt_start);
         m = new();
-        m.length = intf.mon_ck.fmt_length;
-        m.ch_id = intf.mon_ck.fmt_chid;
+        m.length = intf.mon_cb.fmt_length;
+        m.ch_id = intf.mon_cb.fmt_chid;
         m.data = new[m.length];
         foreach(m.data[i]) begin
           @(posedge intf.clk);
-          m.data[i] = intf.mon_ck.fmt_data;
+          m.data[i] = intf.mon_cb.fmt_data;
         end
         mon_bp_port.put(m);
         s = $sformatf("=======================================\n");
@@ -230,16 +249,16 @@ package fmt_pkg;
         `uvm_info(get_type_name(), s, UVM_HIGH)
       end
     endtask
-  endclass: fmt_monitor
+  endclass: fmt_mon
 
   // formatter agent
-  class fmt_agent extends uvm_agent;
-    fmt_driver driver;
-    fmt_monitor monitor;
-    fmt_sequencer sequencer;
+  class fmt_agt extends uvm_agent;
+    fmt_drv drv_i;
+    fmt_mon mon_i;
+    fmt_sqr sqr_i;
     local virtual fmt_intf vif;
 
-    `uvm_component_utils(fmt_agent)
+    `uvm_component_utils(fmt_agt)
 
     function new(string name = "chnl_agent", uvm_component parent);
       super.new(name, parent);
@@ -247,20 +266,20 @@ package fmt_pkg;
 
     function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      driver = fmt_driver::type_id::create("driver", this);
-      monitor = fmt_monitor::type_id::create("monitor", this);
-      sequencer = fmt_sequencer::type_id::create("sequencer", this);
+      drv_i = fmt_drv::type_id::create("drv_i", this);
+      mon_i = fmt_mon::type_id::create("mon_i", this);
+      sqr_i = fmt_sqr::type_id::create("sqr_i", this);
     endfunction
 
     function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
-      driver.seq_item_port.connect(sequencer.seq_item_export);
+      drv_i.seq_item_port.connect(sqr_i.seq_item_export);
     endfunction
 
     function void set_interface(virtual fmt_intf vif);
       this.vif = vif;
-      driver.set_interface(vif);
-      monitor.set_interface(vif);
+      drv_i.set_interface(vif);
+      mon_i.set_interface(vif);
     endfunction
   endclass
 

@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 `include "param_def.v"
-package mcdf_rgm_pkg
+package mcdf_rgm_pkg;
 
 import uvm_pkg::*;
 `include "uvm_macros.svh"
@@ -51,15 +51,16 @@ class ctrl_reg extends uvm_reg;
 	// Methods
 	// ---------------------------------------------
 	// Standard UVM Methods:
-    function new(string name = ctrl_reg);
+    function new(string name = "ctrl_reg");
         super.new(name, 32, UVM_CVR_ALL);
-    endfunction
-    
-    virtual function void build();
-        void'(set_coverage(UVM_CVR_FIELD_VALS));
+		void'(set_coverage(UVM_CVR_FIELD_VALS));
         if(has_coverage(UVM_CVR_FIELD_VALS)) begin
             value_cg = new();
         end
+    endfunction
+    
+    virtual function void build();
+
         
         reserved    = uvm_reg_field::type_id::create("reserved");
         pkt_len     = uvm_reg_field::type_id::create("pkt_len");
@@ -68,8 +69,8 @@ class ctrl_reg extends uvm_reg;
         
         reserved.configure  (this, 26, 6, "RO", 0, 26'h0, 1, 0, 0);        
         pkt_len.configure   (this, 3 , 3, "RW", 0, 3'h0 , 1, 1, 0);   
-        prio_level.configure(this, 2 , 1, "RW", 0, 2'h0 , 1, 1, 0);
-        chnl_en.configure   (this, 1 , 0, "RW", 0, 1'h0 , 1, 1, 0);   
+        prio_level.configure(this, 2 , 1, "RW", 0, 2'h3 , 1, 1, 0);
+        chnl_en.configure   (this, 1 , 0, "RW", 0, 1'h1 , 1, 1, 0);   
     endfunction
     
     function void sample(
@@ -120,20 +121,20 @@ class stat_reg extends uvm_reg;
 	// Methods
 	// ---------------------------------------------
 	// Standard UVM Methods:
-    function new(string name = ctrl_reg);
+    function new(string name = "stat_reg");
         super.new(name, 32, UVM_CVR_ALL);
-    endfunction
-    
-    virtual function void build();
-        void'(set_coverage(UVM_CVR_FIELD_VALS));
+		void'(set_coverage(UVM_CVR_FIELD_VALS));
         if(has_coverage(UVM_CVR_FIELD_VALS)) begin
             value_cg = new();
         end
-        
+    endfunction
+    
+    virtual function void build();
+       
         reserved    = uvm_reg_field::type_id::create("reserved");
         fifo_avail  = uvm_reg_field::type_id::create("fifo_avail");
         
-        reserved.configure  (this, 23, 8, "RO", 0, 24'h0, 1, 0, 0);        
+        reserved.configure  (this, 24, 8, "RO", 0, 24'h0, 1, 0, 0);        
         fifo_avail.configure(this, 8 , 0, "RO", 0, 8'h20, 1, 1, 0);   
         
     endfunction
@@ -179,11 +180,12 @@ class mcdf_rgm extends uvm_reg_block;
 	//
     `uvm_object_utils(mcdf_rgm)
     
-    function new(string name = "mcdf_rgm")
-        super.new(name, UVM_NO_COVERAGE)
+    function new(string name = "mcdf_rgm");
+        super.new(name, UVM_NO_COVERAGE);
     endfunction
     
     virtual function void build();
+    `uvm_info("mcdf_rgm_pkg::", $sformatf("build_debug:get into build "), UVM_HIGH)
         chnl0_ctrl_reg  = ctrl_reg::type_id::create("chnl0_ctrl_reg");
         chnl0_ctrl_reg.configure(this);
         chnl0_ctrl_reg.build();
@@ -209,25 +211,26 @@ class mcdf_rgm extends uvm_reg_block;
         chnl2_stat_reg.build();
         
         //map name. offset, width(bytes), endianess     
-        map = create_map("map", 'h0, 4, UVM_LIMIT_ENDIAN);
+        map = create_map("map", 'h0, 4, UVM_LITTLE_ENDIAN);
         
         map.add_reg(chnl0_ctrl_reg, 32'h00000000, "RW");
-        map.add_reg(chnl0_ctrl_reg, 32'h00000004, "RW");
-        map.add_reg(chnl0_ctrl_reg, 32'h00000008, "RW");
+        map.add_reg(chnl1_ctrl_reg, 32'h00000004, "RW");
+        map.add_reg(chnl2_ctrl_reg, 32'h00000008, "RW");
         map.add_reg(chnl0_stat_reg, 32'h00000010, "RO");
-        map.add_reg(chnl0_stat_reg, 32'h00000014, "RO");
-        map.add_reg(chnl0_stat_reg, 32'h00000018, "RO");
+        map.add_reg(chnl1_stat_reg, 32'h00000014, "RO");
+        map.add_reg(chnl2_stat_reg, 32'h00000018, "RO");
         
         //specify HDL path
-        add_hdl_path("tb.dut.ctrl_regs_inst")
         chnl0_ctrl_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV0_RW_REG), 0, 32);
-        chnl1_ctrl_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV0_RW_REG), 0, 32);
-        chnl2_ctrl_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV0_RW_REG), 0, 32);
+        chnl1_ctrl_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV1_RW_REG), 0, 32);
+        chnl2_ctrl_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV2_RW_REG), 0, 32);
         chnl0_stat_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV0_R_REG), 0, 32);
-        chnl1_stat_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV0_R_REG), 0, 32);
-        chnl2_stat_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV0_R_REG), 0, 32);
+        chnl1_stat_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV1_R_REG), 0, 32);
+        chnl2_stat_reg.add_hdl_path_slice($sformatf("mem[%0d]", `SLV2_R_REG), 0, 32);
+        add_hdl_path("mcdf_tb.dut.ctrl_regs_inst");
         
         lock_model();
+    `uvm_info("mcdf_rgm_pkg::", $sformatf("build_debug:get out from build "), UVM_HIGH)
         
     endfunction
                 
@@ -253,20 +256,22 @@ class reg2mcdf_adapter extends uvm_reg_adapter;
         provides_responses = 1;
     endfunction
     
-    function uvm_sequence_item reg2bus(const reg uvm_reg_bus_op rw);
+    function uvm_sequence_item reg2bus(const ref uvm_reg_bus_op rw);
         reg_trans tr;
         tr = reg_trans::type_id::create("tr");
         
         tr.cmd  = (rw.kind == UVM_WRITE) ? `WRITE: `READ;
         tr.addr = rw.addr;
         tr.data = rw.data;
+		return tr;
     endfunction
     
     function void bus2reg(uvm_sequence_item bus_item, ref uvm_reg_bus_op rw);
         reg_trans tr;
-        if(!$cast(tr, bus_item))
+        if(!$cast(tr, bus_item)) begin
             `uvm_fatal("bus2reg_fatal", "provided bus_item is in correct")
-
+			return;
+		end
         rw.kind     = (tr.cmd == `WRITE) ? UVM_WRITE : UVM_READ;
         rw.addr     = tr.addr;
         rw.data     = tr.data;

@@ -13,7 +13,8 @@
 
 `ifndef MCDF_SEQLIB_SV
 `define MCDF_SEQLIB_SV
-
+  import uvm_pkg::*;
+  `include "uvm_macros.svh"
 
 //////////////////////////////////////////////////////////////////////////////////
 // 	-> basic sequence
@@ -24,17 +25,17 @@
 //////////////////////////////////////////////////////////////////////////////////
 // 	-> sequence for channel data read
 //////////////////////////////////////////////////////////////////////////////////
-class chnl_data_sequence extends uvm_sequence #(chnl_trans);
+class chnl_data_sequence extends uvm_sequence#(chnl_trans);
 	
     //------------------------------------------
 	// Data, Interface, port  Members
 	//------------------------------------------
     rand int        ch_id       = -1;
-    rand int        pkt_id      = 0;
+    int				pkt_id      = 0;
     rand int        data_nidles = -1;
     rand int        pkt_nidles  = -1;
     rand int        data_size   = -1;
-    rand int        ntrans      = -1;
+    rand int        ntrans      = 10;
     
 	
 	//Factory Registration
@@ -60,18 +61,22 @@ class chnl_data_sequence extends uvm_sequence #(chnl_trans);
 	endfunction
 
 	virtual task body();
-    
-        repeat(ntrans) send_trans();
-	
+		int ntrans_int = 0;
+        repeat(ntrans) begin 
+			send_trans();
+			ntrans_int++;
+		end
     endtask
 	
 	task send_trans();
         chnl_trans req, rsp;
 		`uvm_do_with(req, {	local::ch_id       >= 0 -> ch_id        == local::ch_id;    
-							local::pkt_id      >= 0 -> pkt_id       == local::pkt_id;     
+							pkt_id       == local :: pkt_id;     
+							//local::pkt_id      >= 0 -> pkt_id       == local::pkt_id;     
 							local::data_nidles >= 0 -> data_nidles	== local::data_nidles;
 							local::pkt_nidles  >= 0 -> pkt_nidles 	== local::pkt_nidles; 
-							local::data_size   >= 0 -> data.size() 	== local::data_size;})
+							local::data_size   >= 0 -> data_size 	== local::data_size;
+							})
         this.pkt_id++;
         `uvm_info(get_type_name(), req.sprint(), UVM_HIGH)
         get_response(rsp);
@@ -85,7 +90,7 @@ class chnl_data_sequence extends uvm_sequence #(chnl_trans);
         s = {s, "After Randomizztion \n"};
         s = {s, "##############################\n"};
         s = {s, "chnl_data_sequence trans content: \n"};
-        s = {s,sprint()};
+        s = {s, super.sprint()};
         s = {s, "##############################\n"};
         `uvm_info(get_type_name(), s, UVM_MEDIUM)
     endfunction
@@ -140,9 +145,9 @@ class fmt_config_sequence extends uvm_sequence#(fmt_trans);
     endtask
 	
 	task send_trans();
-        chnl_trans req, rsp;
+        fmt_trans req, rsp;
 		`uvm_do_with(req, {	local::fifo != MED_FIFO         -> fifo == local::fifo;    
-							local::bandwidth != MED_WIDTH   -> bandwidth == local::pkt_id;     							
+							local::bandwidth != MED_WIDTH   -> bandwidth == local::bandwidth;     							
 							})
                             
         `uvm_info(get_type_name(), req.sprint(), UVM_HIGH)
@@ -157,7 +162,7 @@ class fmt_config_sequence extends uvm_sequence#(fmt_trans);
         s = {s, "After Randomizztion \n"};
         s = {s, "##############################\n"};
         s = {s, "fmt_config_sequence trans content: \n"};
-        s = {s,sprint()};
+        s = {s, super.sprint()};
         s = {s, "##############################\n"};
         `uvm_info(get_type_name(), s, UVM_MEDIUM)
     endfunction
@@ -188,7 +193,7 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
     `uvm_object_utils_end
     
     //There is no need to use p_sequencer here
-    //`uvm_declare_p_sequencer(reg_sequencer)
+    //`uvm_declare_p_sequencer(reg_sqr)
 	
     //------------------------------------------
 	// Constraints
@@ -207,9 +212,9 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
 		super.new(name);
 	endfunction
 
-	virtual task body();
+	task body();
     
-        repeat() send_trans();
+        send_trans();
 	
     endtask
 	
@@ -221,10 +226,10 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
         `uvm_info(get_type_name(), req.sprint(), UVM_HIGH)
         get_response(rsp);
         `uvm_info(get_type_name(), rsp.sprint(), UVM_HIGH)
-        if(this.cmd == `READ)
+        if(req.cmd == `READ)
             this.data = rsp.data;
         assert(rsp.rsp)
-            else `uvm_error("[rsp error] %0t error response received", $time )
+            else `uvm_error("[rsp error] %0t error response received\n", $time )
     endtask
     
     function void post_randomize();
@@ -232,7 +237,7 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
         s = {s, "After Randomizztion \n"};
         s = {s, "##############################\n"};
         s = {s, "reg_base_sequence trans content: \n"};
-        s = {s,sprint()};
+        s = {s, super.sprint()};
         s = {s, "##############################\n"};
         `uvm_info(get_type_name(), s, UVM_MEDIUM)
     endfunction

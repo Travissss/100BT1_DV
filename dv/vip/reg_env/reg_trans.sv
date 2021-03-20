@@ -16,10 +16,10 @@ class reg_trans extends uvm_sequence_item;
 	//------------------------------------------
 	// Data, Interface, port  Members
 	//------------------------------------------
-    logic   [1:0]   cmd;
-    logic   [7:0]   addr;    
-    logic	[31:0]	data;
-    bit             rsp;
+	rand bit	[1:0]   cmd;
+	rand bit	[7:0]   addr;    
+	rand bit	[31:0]	data;
+	bit					rsp;
     
 	//Factory Registration
 	//
@@ -49,10 +49,6 @@ class reg_trans extends uvm_sequence_item;
 endclass
 
 //Constructor
-function void reg_trans::new(string name = "reg_trans")
+function reg_trans::new(string name = "reg_trans");
 	super.new(name);
 endfunction
-
-
-
-`endif

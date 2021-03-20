@@ -14,7 +14,7 @@
 `ifndef MCDF_REG_SQR_SV
 `define MCDF_REG_SQR_SV
 
-class reg_sqr extends uvm_sequencer#(fmt_trans);
+class reg_sqr extends uvm_sequencer#(reg_trans);
 	
 	//Factory Registration
 	//
@@ -30,7 +30,7 @@ class reg_sqr extends uvm_sequencer#(fmt_trans);
 endclass
 
 //Constructor
-function void reg_sqr::new(string name = "reg_sqr", uvm_component parent)
+function reg_sqr::new(string name = "reg_sqr", uvm_component parent);
 	super.new(name, parent);
 endfunction
 

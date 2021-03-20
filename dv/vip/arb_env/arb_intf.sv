@@ -17,7 +17,7 @@ interface arb_intf(input clk, input rstn);
 	logic 			a2s_acks[3];
 	logic			f2a_id_req;
 	
-	clocking mon_cb@(posedge hclk);
+	clocking mon_cb@(posedge clk);
 		// default input #1 output #1;
         input  slv_prios;
         input  slv_reqs;

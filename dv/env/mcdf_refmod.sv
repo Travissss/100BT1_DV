@@ -44,11 +44,11 @@ class mcdf_refmod extends uvm_component;
     extern task do_reset();
     extern task do_reg_update();
     extern task do_packet(int id);
-    extern task get_field_value(int id, mcdt_field_t f);
+    extern function int get_field_value(int id, mcdf_field_t s);
 endclass
 
 //Constructor
-function void mcdf_refmod::new(string name = "mcdf_refmod", uvm_component parent)
+function mcdf_refmod::new(string name = "mcdf_refmod", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -119,17 +119,18 @@ task mcdf_refmod::do_packet(int id);
 		fmt_tr.ch_id	= id;
 		foreach(fmt_tr.data[i])begin
 			this.in_bgpk_ports[id].get(mon_tr);
-			fmt_tr.data[i] = mon_tr.data
+			fmt_tr.data[i] = mon_tr.data;
 		end
 		this.out_tlm_fifos[id].put(fmt_tr);
 	end
 endtask
 
-task get_field_value(int id, mcdf_field_t s);
+function int mcdf_refmod::get_field_value(int id, mcdf_field_t s);
 	case(s)
 		RW_LEN	: return regs[id].len;
 		RW_PRIO	: return regs[id].prio;
 		RW_EN	: return regs[id].en;
 		RD_AVAIL: return regs[id].avail;
-endtask
+	endcase
+endfunction
 `endif

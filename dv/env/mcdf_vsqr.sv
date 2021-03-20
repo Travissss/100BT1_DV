@@ -18,7 +18,7 @@ class mcdf_vsqr extends uvm_sequencer;
 	//------------------------------------------
 	reg_sqr		reg_sqr;
 	fmt_sqr		fmt_sqr;
-	chnl_sqr	chnl_sqr[3];
+	chnl_sqr	chnl_sqrs[3];
 	mcdf_rgm	mcdf_rgm;
 	
 	virtual mcdf_intf mcdf_vif;
@@ -41,12 +41,12 @@ endclass
 // Methods realization
 //////////////////////////////////////////////////////////////////////////////////
 function mcdf_vsqr::new(string name = "mcdf_vsqr", uvm_component parent);
-	super.new(name, this);
+	super.new(name, parent);
 endfunction
 
 function void mcdf_vsqr::set_interface(virtual mcdf_intf mcdf_vif);
 	if(mcdf_vif == null)
-		`uvm_error(get_type_name(), "rror in getting Interface")
+		`uvm_error(get_type_name(), "error in getting Interface")
 	else
 		this.mcdf_vif = mcdf_vif;
 endfunction

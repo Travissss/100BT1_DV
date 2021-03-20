@@ -15,24 +15,35 @@
 `define MCDF_VSEQ_SV
 
 
+import mcdf_rgm_pkg::*;
 //////////////////////////////////////////////////////////////////////////////////
 // 	-> basic sequence
 //////////////////////////////////////////////////////////////////////////////////
 class mcdf_base_virtual_sequence extends uvm_sequence;
 	reg_idle_sequence	reg_idle_seq;
 	reg_write_sequence	reg_write_seq;
-	reg_read_sequence	reg_read_seq
+	reg_read_sequence	reg_read_seq;
 	chnl_data_sequence	chnl_data_seq;
 	fmt_config_sequence	fmt_config_seq;
 	mcdf_rgm			rgm;
 	
 	`uvm_object_utils(mcdf_base_virtual_sequence)
-	`uvm_declare_p_sequencer(mcdf_virtual_sequencer)
+	`uvm_declare_p_sequencer(mcdf_vsqr)
+
+	function new (string name = "mcdf_base_virtual_sequence");
+      super.new(name);
+    endfunction
+	//virtual task pre_body();
+	//	if(starting_phase != null) begin
+	//		starting_phase.raise_objection(this);
+	//	end
+	//endtask
 	
-	function new(string name = "mcdf_base_virtual_sequence";)
-		super.new(name);
-	endfunction
-	
+	//virtual task post_body();
+	//	if(starting_phase != null) begin
+	//		starting_phase.drop_objection(this);
+	//	end
+	//endtask
 	virtual task body();
 		`uvm_info(get_type_name(),"=====================STARTED=====================", UVM_LOW)
 		rgm = p_sequencer.mcdf_rgm;
@@ -60,11 +71,11 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
 	
 	virtual function bit diff_value(int val1, int val2, string id = "value_compare");
 		if(val1 != val2) begin
-			`uvm_error("compare error", $sformatf("Error! %s val1 %8x != val2 %8x", id, val1, val2))
+			//`uvm_error("compare error", $sformatf("Error! %s val1 %8x != val2 %8x", id, val1, val2))
 			return 0;
 		end else begin
-			`uvm_error("compare success", $sformatf("Success! %s val1 %8x == val2 %8x", id, val1, val2))
-			return 0;		
+			`uvm_info("compare success", $sformatf("Success! %s val1 %8x == val2 %8x", id, val1, val2), UVM_LOW)
+			return 1;		
 		end
 	endfunction
 	
@@ -90,12 +101,6 @@ class mcdf_data_consistence_basic_virtual_sequence extends mcdf_base_virtual_seq
 		super.new(name);
 	endfunction
 
-	virtual task body();
-    
-        repeat(ntrans) send_trans();
-	
-    endtask
-	
 	//user defined, extends from base sequence
 	//do register configuration
 	virtual task do_reg();
@@ -114,13 +119,13 @@ class mcdf_data_consistence_basic_virtual_sequence extends mcdf_base_virtual_seq
 		void'(this.diff_value(wr_val, rd_val, "SLV1_WR_REG"));
 		
 		//slv2 with len = 32, prio = 1, en = 1;
-		wr_val = (3 << 3) + (1 << 1) + 1;
+		wr_val = (3 << 3) + (2 << 1) + 1;
 		rgm.chnl2_ctrl_reg.write(status, wr_val);
 		rgm.chnl2_ctrl_reg.read(status, rd_val);
 		void'(this.diff_value(wr_val, rd_val, "SLV2_WR_REG"));
 		
 		//send idle command
-		`uvm_do_on(idle_reg_seq, p_sequencer.reg_sqr)
+		`uvm_do_on(reg_idle_seq, p_sequencer.reg_sqr)
 	endtask
 
 	//
@@ -153,7 +158,9 @@ class mcdf_data_consistence_basic_virtual_sequence extends mcdf_base_virtual_seq
 																		data_size	== 32;})
 		
 		join
+        `uvm_info(get_type_name(), "get into do_data but never exit1", UVM_MEDIUM)
 		#10ns;	//wait until all data transition finished
+        `uvm_info(get_type_name(), "get into do_data but never exit2", UVM_MEDIUM)
 	endtask			
 endclass
 
@@ -207,7 +214,7 @@ class mcdf_full_random_virtual_sequence extends mcdf_base_virtual_sequence;
 		rgm.chnl2_ctrl_reg.mirror(status, UVM_CHECK, UVM_BACKDOOR);
 		
 		//send idle command
-		`uvm_do_on(idle_reg_seq, p_sequencer.reg_sqr, )
+		`uvm_do_on(reg_idle_seq, p_sequencer.reg_sqr)
 	endtask
 
 	//
@@ -228,19 +235,19 @@ class mcdf_full_random_virtual_sequence extends mcdf_base_virtual_sequence;
 				
 			`uvm_do_on_with(chnl_data_seq, p_sequencer.chnl_sqrs[1], 
 			{	ntrans 		inside {[400:600]}; 
-				ch_id==0; 
+				ch_id==1; 
 				data_nidles inside {[0:3]}; 
 				pkt_nidles 	inside {1,2,4,8}; 
 				data_size 	inside {8,16,32};})
 				
-			`uvm_do_on_with(chnl_data_seq, p_sequencer.chnl_sqrs[1], 
+			`uvm_do_on_with(chnl_data_seq, p_sequencer.chnl_sqrs[2], 
 			{	ntrans 		inside {[400:600]}; 
-				ch_id==0; 
+				ch_id==2; 
 				data_nidles inside {[0:3]}; 
 				pkt_nidles 	inside {1,2,4,8}; 
 				data_size 	inside {8,16,32};})
 		join
-		#10ns
+		#10ns;
 	endtask	
     
 
@@ -295,9 +302,9 @@ class mcdf_reg_builtin_virtual_sequence extends mcdf_base_virtual_sequence;
 		`uvm_info("Built in SEQ", "register bit bash sequence finished", UVM_LOW)			
 		
 		// reset hardware register and register model
-		p_sequencer.intf.rstn <= 'b0;
-		repeat(5) @(posedge p_sequencer.intf.clk);
-		p_sequencer.intf.rstn <= 'b1;
+		p_sequencer.mcdf_vif.rstn <= 'b0;
+		repeat(5) @(posedge p_sequencer.mcdf_vif.clk);
+		p_sequencer.mcdf_vif.rstn <= 'b1;
 		rgm.reset();
 		reg_acc_seq.model = rgm;
 		reg_acc_seq.start(p_sequencer.reg_sqr);

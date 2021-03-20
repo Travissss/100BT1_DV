@@ -14,7 +14,7 @@
 `ifndef MCDF_FMT_PKG_SV
 `define MCDF_FMT_PKG_SV
 
-`include "fmt_if.sv"
+`include "fmt_intf.sv"
 package fmt_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"

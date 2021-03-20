@@ -1,7 +1,21 @@
+interface chnl_intf(input clk, input rstn);
+  logic [31:0] ch_data;
+  logic        ch_valid;
+  logic        ch_ready;
+  clocking drv_cb @(posedge clk);
+    default input #1ns output #1ns;
+    output ch_data, ch_valid;
+    input ch_ready;
+  endclocking
+  clocking mon_cb @(posedge clk);
+    default input #1ns output #1ns;
+    input ch_data, ch_valid, ch_ready;
+  endclocking
+endinterface
+
 package chnl_pkg;
   import uvm_pkg::*;
   `include "uvm_macros.svh"
-
   // channel sequence item
   class chnl_trans extends uvm_sequence_item;
     rand bit[31:0] data[];
@@ -35,12 +49,12 @@ package chnl_pkg;
   endclass: chnl_trans
   
   // channel driver
-  class chnl_driver extends uvm_driver #(chnl_trans);
+  class chnl_drv extends uvm_driver #(chnl_trans);
     local virtual chnl_intf intf;
 
-    `uvm_component_utils(chnl_driver)
+    `uvm_component_utils(chnl_drv)
   
-    function new (string name = "chnl_driver", uvm_component parent);
+    function new (string name = "chnl_drv", uvm_component parent);
       super.new(name, parent);
     endfunction
   
@@ -70,10 +84,12 @@ package chnl_pkg;
       chnl_trans req, rsp;
       @(posedge intf.rstn);
       forever begin
+        
         seq_item_port.get_next_item(req);
         this.chnl_write(req);
         void'($cast(rsp, req.clone()));
         rsp.rsp = 1;
+        
         rsp.set_sequence_id(req.get_sequence_id());
         seq_item_port.item_done(rsp);
       end
@@ -82,8 +98,8 @@ package chnl_pkg;
     task chnl_write(input chnl_trans t);
       foreach(t.data[i]) begin
         @(posedge intf.clk);
-        intf.drv_ck.ch_valid <= 1;
-        intf.drv_ck.ch_data <= t.data[i];
+        intf.drv_cb.ch_valid <= 1;
+        intf.drv_cb.ch_data <= t.data[i];
         @(negedge intf.clk);
         wait(intf.ch_ready === 'b1);
         `uvm_info(get_type_name(), $sformatf("sent data 'h%8x", t.data[i]), UVM_HIGH)
@@ -94,17 +110,19 @@ package chnl_pkg;
     
     task chnl_idle();
       @(posedge intf.clk);
-      intf.drv_ck.ch_valid <= 0;
-      intf.drv_ck.ch_data <= 0;
+      intf.drv_cb.ch_valid <= 0;
+      intf.drv_cb.ch_data <= 0;
     endtask
-  endclass: chnl_driver
+  endclass: chnl_drv
   
-  class chnl_sequencer extends uvm_sequencer #(chnl_trans);
-    `uvm_component_utils(chnl_sequencer)
-    function new (string name = "chnl_sequencer", uvm_component parent);
+  
+  class chnl_sqr extends uvm_sequencer #(chnl_trans);
+    `uvm_component_utils(chnl_sqr)
+    function new (string name = "chnl_sqr", uvm_component parent);
       super.new(name, parent);
     endfunction
-  endclass: chnl_sequencer
+  endclass: chnl_sqr
+
 
   class chnl_data_sequence extends uvm_sequence #(chnl_trans);
     rand int pkt_id = 0;
@@ -121,7 +139,7 @@ package chnl_pkg;
       `uvm_field_int(data_size, UVM_ALL_ON)
       `uvm_field_int(ntrans, UVM_ALL_ON)
     `uvm_object_utils_end
-    `uvm_declare_p_sequencer(chnl_sequencer)
+    `uvm_declare_p_sequencer(chnl_sqr)
     function new (string name = "chnl_data_sequence");
       super.new(name);
     endfunction
@@ -163,13 +181,13 @@ package chnl_pkg;
   } mon_data_t;
 
   // channel monitor
-  class chnl_monitor extends uvm_monitor;
+  class chnl_mon extends uvm_monitor;
     local virtual chnl_intf intf;
     uvm_blocking_put_port #(mon_data_t) mon_bp_port;
 
-    `uvm_component_utils(chnl_monitor)
+    `uvm_component_utils(chnl_mon)
 
-    function new(string name="chnl_monitor", uvm_component parent);
+    function new(string name="chnl_mon", uvm_component parent);
       super.new(name, parent);
       mon_bp_port = new("mon_bp_port", this);
     endfunction
@@ -188,45 +206,48 @@ package chnl_pkg;
     task mon_trans();
       mon_data_t m;
       forever begin
-        @(posedge intf.clk iff (intf.mon_ck.ch_valid==='b1 && intf.mon_ck.ch_ready==='b1));
-        m.data = intf.mon_ck.ch_data;
+        @(posedge intf.clk iff (intf.mon_cb.ch_valid==='b1 && intf.mon_cb.ch_ready==='b1));
+        m.data = intf.mon_cb.ch_data;
         mon_bp_port.put(m);
         `uvm_info(get_type_name(), $sformatf("monitored channel data 'h%8x", m.data), UVM_HIGH)
       end
     endtask
-  endclass: chnl_monitor
+  endclass: chnl_mon
   
   // channel agent
-  class chnl_agent extends uvm_agent;
-    chnl_driver driver;
-    chnl_monitor monitor;
-    chnl_sequencer sequencer;
+  class chnl_agt extends uvm_agent;
+    chnl_drv drv_i;
+    chnl_mon mon_i;
+    
+    chnl_sqr sqr_i;
     local virtual chnl_intf vif;
 
-    `uvm_component_utils(chnl_agent)
+    `uvm_component_utils(chnl_agt)
 
-    function new(string name = "chnl_agent", uvm_component parent);
+    function new(string name = "chnl_agt", uvm_component parent);
       super.new(name, parent);
     endfunction
 
     function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      driver = chnl_driver::type_id::create("driver", this);
-      monitor = chnl_monitor::type_id::create("monitor", this);
-      sequencer = chnl_sequencer::type_id::create("sequencer", this);
+	  drv_i= chnl_drv::type_id::create("drv_i", this);
+      mon_i = chnl_mon::type_id::create("mon_i", this);
+      
+      sqr_i = chnl_sqr::type_id::create("sqr_i", this);
     endfunction
 
     function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
-      driver.seq_item_port.connect(sequencer.seq_item_export);
+      
+      drv_i.seq_item_port.connect(sqr_i.seq_item_export);
     endfunction
 
     function void set_interface(virtual chnl_intf vif);
       this.vif = vif;
-      driver.set_interface(vif);
-      monitor.set_interface(vif);
+      drv_i.set_interface(vif);
+      mon_i.set_interface(vif);
     endfunction
-  endclass: chnl_agent
+  endclass: chnl_agt
 
 endpackage
 

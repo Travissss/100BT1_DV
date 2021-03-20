@@ -40,7 +40,7 @@ class fmt_mon extends uvm_monitor;
 endclass
 
 //Constructor
-function void fmt_mon::new(string name = "fmt_mon", uvm_component parent)
+function fmt_mon::new(string name = "fmt_mon", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -73,14 +73,14 @@ task fmt_mon::mon_trans();
         pkt = new();
         pkt.length  = vif.mon_cb.fmt_length;
         pkt.ch_id   = vif.mon_cb.fmt_chid;
-        pkt.data    = vif.mon_cb.fmt_data;
+        pkt.data    = new[pkt.length];
         foreach(pkt.data[i]) begin
             @(posedge vif.clk);
             pkt.data[i] = vif.mon_cb.fmt_data;
         end
         mon_bp_port.put(pkt);
         s = $sformatf("================================================\n");
-        s = {s, $sformatf("%0t %s monitor a packet: \n", $time, this.name);
+        s = {s, $sformatf("%0t %s monitor a packet: \n", $time, this.name)};
         s = {s, $sformatf("length = %0x: \n", pkt.length)};
         s = {s, $sformatf("chid = %0x: \n", pkt.ch_id)};
         foreach(pkt.data[i]) s = {s, $sformatf("data[%0d] = %8x \n",i , pkt.data[i])};

@@ -23,7 +23,7 @@ interface chnl_intf(input clk, input rstn);
         input   ch_ready;
 	endclocking
 	
-	clocking mon_cb@(posedge clk);
+	clocking mon_cb@(posedge hclk);
 		// default input #1 output #1;
         input  ch_data;
         input  ch_valid;

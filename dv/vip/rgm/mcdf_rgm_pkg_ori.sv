@@ -1,3 +1,4 @@
+
 `include "param_def.v"
 
 package mcdf_rgm_pkg;
@@ -180,13 +181,23 @@ package mcdf_rgm_pkg;
       provides_responses = 1;
     endfunction
     function uvm_sequence_item reg2bus(const ref uvm_reg_bus_op rw);
-      //USER TODO
+      reg_trans t = reg_trans::type_id::create("t");
+      t.cmd = (rw.kind == UVM_WRITE) ? `WRITE : `READ;
+      t.addr = rw.addr;
+      t.data = rw.data;
+      return t;
     endfunction
     function void bus2reg(uvm_sequence_item bus_item, ref uvm_reg_bus_op rw);
-      //USER TODO
+      reg_trans t;
+      if (!$cast(t, bus_item)) begin
+        `uvm_fatal("CASTFAIL","Provided bus_item is not of the correct type")
+        return;
+      end
+      rw.kind = (t.cmd == `WRITE) ? UVM_WRITE : UVM_READ;
+      rw.addr = t.addr;
+      rw.data = t.data;
+      rw.status = UVM_IS_OK;
     endfunction
   endclass
-
-
 
 endpackage: mcdf_rgm_pkg

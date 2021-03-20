@@ -30,7 +30,7 @@ class chnl_sqr extends uvm_sequencer#(chnl_trans);
 endclass
 
 //Constructor
-function void chnl_sqr::new(string name = "chnl_sqr", uvm_component parent)
+function chnl_sqr::new(string name = "chnl_sqr", uvm_component parent);
 	super.new(name, parent);
 endfunction
 

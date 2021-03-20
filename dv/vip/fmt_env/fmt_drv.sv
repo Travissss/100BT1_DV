@@ -37,7 +37,7 @@ class fmt_drv extends uvm_driver #(fmt_trans);
 	extern virtual function void build_phase(uvm_phase phase);
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
-    extern virtual function void set_interface(virtual chnl_intf vif);
+    extern virtual function void set_interface(virtual fmt_intf vif);
     extern task do_receive    ();
     extern task do_consume    ();
     extern task do_config     ();
@@ -46,7 +46,7 @@ class fmt_drv extends uvm_driver #(fmt_trans);
 endclass
 
 //Constructor
-function void fmt_drv::new(string name = "fmt_drv", uvm_component parent)
+function fmt_drv::new(string name = "fmt_drv", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -60,12 +60,14 @@ endfunction
 
 //Run_Phase
 task fmt_drv::run_phase(uvm_phase phase);
+    `uvm_info("fmt_drv::", $sformatf("run_phase debug:get into run_phase fork join "), UVM_HIGH)
     fork
         this.do_receive    ();
         this.do_consume    ();
         this.do_config     ();
         this.do_reset      ();
     join
+    `uvm_info("fmt_drv::", $sformatf("run_phase debug:get out from run_phase fork join "), UVM_HIGH)
 endtask
 
 // User Defined Methods:
@@ -98,6 +100,7 @@ task fmt_drv::do_receive();
             this.fifo.put(vif.fmt_data);       
         end
     end
+    `uvm_info("fmt_drv::", $sformatf("run_phase debug:get out from run_phase do_receive() "), UVM_HIGH)
 endtask
 
 task fmt_drv::do_consume();
@@ -107,6 +110,7 @@ task fmt_drv::do_consume();
         repeat($urandom_range(1, this.data_consum_period))
             @(posedge vif.clk);
     end
+    `uvm_info("fmt_drv::", $sformatf("run_phase debug:get out from run_phase do_consume() "), UVM_HIGH)
 endtask
 
 task fmt_drv::do_config();
@@ -132,6 +136,7 @@ task fmt_drv::do_config();
         rsp.set_sequence_id(req.get_sequence_id());
         seq_item_port.item_done(rsp);
     end
+    `uvm_info("fmt_drv::", $sformatf("run_phase debug:get out from run_phase do_config() "), UVM_HIGH)
 endtask
 
 task fmt_drv::do_reset();
@@ -139,6 +144,7 @@ task fmt_drv::do_reset();
         @(negedge vif.rstn);
         vif.drv_cb.fmt_grant <= 0;
     end
+    `uvm_info("fmt_drv::", $sformatf("run_phase debug:get out from run_phase do_reset() "), UVM_HIGH)
 endtask
 
 

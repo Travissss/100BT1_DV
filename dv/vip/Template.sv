@@ -52,7 +52,7 @@ endclass
 //////////////////////////////////////////////////////////////////////////////////
 
 //Constructor
-function void xxxxxx::new(string name = "xxxxxx", uvm_component parent)
+function xxxxxx::new(string name = "xxxxxx", uvm_component parent);
 	super.new(name, parent);
 endfunction
 

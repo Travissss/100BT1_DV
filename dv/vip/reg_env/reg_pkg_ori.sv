@@ -1,4 +1,22 @@
+
+
 `include "param_def.v"
+interface reg_intf(input clk, input rstn);
+  logic [1:0]                 cmd;
+  logic [`ADDR_WIDTH-1:0]     cmd_addr;
+  logic [`CMD_DATA_WIDTH-1:0] cmd_data_s2m;
+  logic [`CMD_DATA_WIDTH-1:0] cmd_data_m2s;
+  clocking drv_cb @(posedge clk);
+    default input #1ns output #1ns;
+    output cmd, cmd_addr, cmd_data_m2s;
+    input cmd_data_s2m;
+  endclocking
+  clocking mon_cb @(posedge clk);
+    default input #1ns output #1ns;
+    input cmd, cmd_addr, cmd_data_m2s, cmd_data_s2m;
+  endclocking
+endinterface
+
 
 package reg_pkg;
   import uvm_pkg::*;
@@ -32,12 +50,12 @@ package reg_pkg;
   endclass
 
   // register driver
-  class reg_driver extends uvm_driver #(reg_trans);
+  class reg_drv extends uvm_driver #(reg_trans);
     local virtual reg_intf intf;
 
-    `uvm_component_utils(reg_driver)
+    `uvm_component_utils(reg_drv)
   
-    function new (string name = "reg_driver", uvm_component parent);
+    function new (string name = "reg_drv", uvm_component parent);
       super.new(name, parent);
     endfunction
   
@@ -81,13 +99,13 @@ package reg_pkg;
       @(posedge intf.clk iff intf.rstn);
       case(t.cmd)
         `WRITE: begin 
-                  intf.drv_ck.cmd_addr <= t.addr; 
-                  intf.drv_ck.cmd <= t.cmd; 
-                  intf.drv_ck.cmd_data_m2s <= t.data; 
+                  intf.drv_cb.cmd_addr <= t.addr; 
+                  intf.drv_cb.cmd <= t.cmd; 
+                  intf.drv_cb.cmd_data_m2s <= t.data; 
                 end
         `READ:  begin 
-                  intf.drv_ck.cmd_addr <= t.addr; 
-                  intf.drv_ck.cmd <= t.cmd; 
+                  intf.drv_cb.cmd_addr <= t.addr; 
+                  intf.drv_cb.cmd <= t.cmd; 
                   repeat(2) @(negedge intf.clk);
                   t.data = intf.cmd_data_s2m; 
                 end
@@ -101,18 +119,18 @@ package reg_pkg;
     
     task reg_idle();
       @(posedge intf.clk);
-      intf.drv_ck.cmd_addr <= 0;
-      intf.drv_ck.cmd <= `IDLE;
-      intf.drv_ck.cmd_data_m2s <= 0;
+      intf.drv_cb.cmd_addr <= 0;
+      intf.drv_cb.cmd <= `IDLE;
+      intf.drv_cb.cmd_data_m2s <= 0;
     endtask
   endclass
 
-  class reg_sequencer extends uvm_sequencer #(reg_trans);
-    `uvm_component_utils(reg_sequencer)
-    function new (string name = "reg_sequencer", uvm_component parent);
+  class reg_sqr extends uvm_sequencer #(reg_trans);
+    `uvm_component_utils(reg_sqr)
+    function new (string name = "reg_sqr", uvm_component parent);
       super.new(name, parent);
     endfunction
-  endclass: reg_sequencer
+  endclass: reg_sqr
 
   class reg_base_sequence extends uvm_sequence #(reg_trans);
     rand bit[7:0] addr = -1;
@@ -130,7 +148,7 @@ package reg_pkg;
       `uvm_field_int(cmd, UVM_ALL_ON)
       `uvm_field_int(data, UVM_ALL_ON)
     `uvm_object_utils_end
-    `uvm_declare_p_sequencer(reg_sequencer)
+    `uvm_declare_p_sequencer(reg_sqr)
 
     function new (string name = "reg_base_sequence");
       super.new(name);
@@ -167,50 +185,50 @@ package reg_pkg;
     endfunction
   endclass: reg_base_sequence
 
-  class idle_reg_sequence extends reg_base_sequence;
+  class reg_idle_sequence extends reg_base_sequence;
     constraint cstr{
       addr == 0;
       cmd == `IDLE;
       data == 0;
     }
-    `uvm_object_utils(idle_reg_sequence)
-    function new (string name = "idle_reg_sequence");
+    `uvm_object_utils(reg_idle_sequence)
+    function new (string name = "reg_idle_sequence");
       super.new(name);
     endfunction
-  endclass: idle_reg_sequence
+  endclass: reg_idle_sequence
 
-  class write_reg_sequence extends reg_base_sequence;
+  class reg_write_sequence extends reg_base_sequence;
     constraint cstr{
       cmd == `WRITE;
     }
-    `uvm_object_utils(write_reg_sequence)
-    function new (string name = "write_reg_sequence");
+    `uvm_object_utils(reg_write_sequence)
+    function new (string name = "reg_write_sequence");
       super.new(name);
     endfunction
-  endclass: write_reg_sequence
+  endclass: reg_write_sequence
 
-  class read_reg_sequence extends reg_base_sequence;
+  class reg_read_sequence extends reg_base_sequence;
     constraint cstr{
       cmd == `READ;
     }
-    `uvm_object_utils(read_reg_sequence)
-    function new (string name = "read_reg_sequence");
+    `uvm_object_utils(reg_read_sequence)
+    function new (string name = "reg_read_sequence");
       super.new(name);
     endfunction
-  endclass: read_reg_sequence 
+  endclass: reg_read_sequence 
 
   // register monitor
-  class reg_monitor extends uvm_monitor;
+  class reg_mon extends uvm_monitor;
     local virtual reg_intf intf;
     uvm_blocking_put_port #(reg_trans) mon_bp_port;
-    uvm_analysis_port #(reg_trans) mon_ana_port;
+    uvm_analysis_port #(reg_trans) mon_ap;
 
-    `uvm_component_utils(reg_monitor)
+    `uvm_component_utils(reg_mon)
 
-    function new(string name="reg_monitor", uvm_component parent);
+    function new(string name="reg_mon", uvm_component parent);
       super.new(name, parent);
       mon_bp_port = new("mon_bp_port", this);
-      mon_ana_port = new("mon_ana_port", this);
+      mon_ap = new("mon_ap", this);
     endfunction
 
     function void set_interface(virtual reg_intf intf);
@@ -227,53 +245,53 @@ package reg_pkg;
     task mon_trans();
       reg_trans m;
       forever begin
-        @(posedge intf.clk iff (intf.rstn && intf.mon_ck.cmd != `IDLE));
+        @(posedge intf.clk iff (intf.rstn && intf.mon_cb.cmd != `IDLE));
         m = new();
-        m.addr = intf.mon_ck.cmd_addr;
-        m.cmd = intf.mon_ck.cmd;
-        if(intf.mon_ck.cmd == `WRITE) begin
-          m.data = intf.mon_ck.cmd_data_m2s;
+        m.addr = intf.mon_cb.cmd_addr;
+        m.cmd = intf.mon_cb.cmd;
+        if(intf.mon_cb.cmd == `WRITE) begin
+          m.data = intf.mon_cb.cmd_data_m2s;
         end
-        else if(intf.mon_ck.cmd == `READ) begin
+        else if(intf.mon_cb.cmd == `READ) begin
           @(posedge intf.clk);
-          m.data = intf.mon_ck.cmd_data_s2m;
+          m.data = intf.mon_cb.cmd_data_s2m;
         end
         mon_bp_port.put(m);
-        mon_ana_port.write(m);
+        mon_ap.write(m);
         `uvm_info(get_type_name(), $sformatf("monitored addr %2x, cmd %2b, data %8x", m.addr, m.cmd, m.data), UVM_HIGH)
       end
     endtask
-  endclass: reg_monitor
+  endclass: reg_mon
 
   // register agent
-  class reg_agent extends uvm_agent;
-    reg_driver driver;
-    reg_monitor monitor;
-    reg_sequencer sequencer;
+  class reg_agt extends uvm_agent;
+    reg_drv drv_i;
+    reg_mon mon_i;
+    reg_sqr sqr_i;
     local virtual reg_intf vif;
 
-    `uvm_component_utils(reg_agent)
+    `uvm_component_utils(reg_agt)
 
-    function new(string name = "reg_agent", uvm_component parent);
+    function new(string name = "reg_agt", uvm_component parent);
       super.new(name, parent);
     endfunction
 
     function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      driver = reg_driver::type_id::create("driver", this);
-      monitor = reg_monitor::type_id::create("monitor", this);
-      sequencer = reg_sequencer::type_id::create("sequencer", this);
+      drv_i = reg_drv::type_id::create("drv_i", this);
+      mon_i = reg_mon::type_id::create("mon_i", this);
+      sqr_i = reg_sqr::type_id::create("sqr_i", this);
     endfunction
 
     function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
-      driver.seq_item_port.connect(sequencer.seq_item_export);
+      drv_i.seq_item_port.connect(sqr_i.seq_item_export);
     endfunction
 
     function void set_interface(virtual reg_intf vif);
       this.vif = vif;
-      driver.set_interface(vif);
-      monitor.set_interface(vif);
+      drv_i.set_interface(vif);
+      mon_i.set_interface(vif);
     endfunction
   endclass
 

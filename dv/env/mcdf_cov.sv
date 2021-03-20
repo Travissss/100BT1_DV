@@ -1,3 +1,4 @@
+
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
@@ -11,7 +12,7 @@
 // 	-> Collect coverage info
 //////////////////////////////////////////////////////////////////////////////////
 
-class mcdf_cov extends uvm_object;
+class mcdf_cov extends uvm_component;
 
 	//------------------------------------------
 	// Data, Interface, port  Members
@@ -142,19 +143,19 @@ class mcdf_cov extends uvm_object;
 			bins dis_en	= {1'b0};
 		} 
 
-		ch0_vld: coverpoint chnl_vifs[0].mon_cb.ch_valid[0]{
+		ch0_vld: coverpoint chnl_vifs[0].mon_cb.ch_valid{
 			type_option.weight = 0;			
 			bins hi = {1'b1};
 			bins lo	= {1'b0};
 		} 
 		
-		ch1_vld: coverpoint chnl_vifs[1].mon_cb.ch_valid[1]{
+		ch1_vld: coverpoint chnl_vifs[1].mon_cb.ch_valid{
 			type_option.weight = 0;			
 			bins hi = {1'b1};
 			bins lo	= {1'b0};
 		} 
 		
-		ch2_vld: coverpoint chnl_vifs[2].mon_cb.ch_valid[2]{
+		ch2_vld: coverpoint chnl_vifs[2].mon_cb.ch_valid{
 			type_option.weight = 0;			
 			bins hi = {1'b1};
 			bins lo	= {1'b0};
@@ -199,7 +200,7 @@ class mcdf_cov extends uvm_object;
 		    bins ch_prio3 = {3};
 		}
 
-		ch1_prio: coverpoint arb_vif.mon_cb.slv_prios[1]{
+		ch2_prio: coverpoint arb_vif.mon_cb.slv_prios[2]{
 			bins ch_prio0 = {0};
 			bins ch_prio1 = {1};
 		    bins ch_prio2 = {2};
@@ -213,6 +214,7 @@ class mcdf_cov extends uvm_object;
 			bins ch0 = {0};
 			bins ch1 = {1};
 			bins ch2 = {2};
+			bins ch3 = {3};		//default in rtl
 			illegal_bins illegel = default;	
 		}
 		
@@ -226,12 +228,12 @@ class mcdf_cov extends uvm_object;
 	endgroup
 	
 	//6: for formatter grant delay time
-	covergroup cg_formatter_grant
+	covergroup cg_formatter_grant;
 		delay_req_to_grant: coverpoint delay_req_to_grant{
-			bins delay_1 		= {1};
-			bins delay_2 		= {2};
-			bins delay_3_plus 	= {3:10};
-			illegal_bins illegal = {0};
+			bins delay_1 			= {1	};
+			bins delay_2 			= {2	};
+			bins delay_3_plus 		= {[3:10]};
+			illegal_bins illegal 	= {0	};
 		}
 	endgroup
 	
@@ -262,13 +264,8 @@ endclass
 // Methods realization
 //////////////////////////////////////////////////////////////////////////////////
 //Constructor
-function void mcdf_cov::new(string name = "mcdf_cov", uvm_component parent)
+function mcdf_cov::new(string name = "mcdf_cov", uvm_component parent);
 	super.new(name, parent);
-endfunction
-
-//Build_Phase
-function void mcdf_cov::build_phase(uvm_phase phase);
-	super.build_phase(phase);	
 	cg_arbiter_priority			= new();
 	cg_channel_disable          = new();
 	cg_formatter_grant          = new();
@@ -277,21 +274,26 @@ function void mcdf_cov::build_phase(uvm_phase phase);
 	cg_mcdf_reg_write_read      = new();
 endfunction
 
+//Build_Phase
+function void mcdf_cov::build_phase(uvm_phase phase);
+	super.build_phase(phase);	
+endfunction
+
 //Run_phase
-function void mcdf_cov::run_phase(uvm_phase phase);
+task mcdf_cov::run_phase(uvm_phase phase);
 	fork
 		do_reg_sample();
 	    do_channel_sample();	
 	    do_arbiter_sample();
 	    do_formatter_sample();
 	join
-endfunction
+endtask
 
 //report_phase
 function void mcdf_cov::report_phase(uvm_phase phase);
-	super.report_phase(phase);
 	string s;
-	s = "\n--------------------------------------------------\n"
+	super.report_phase(phase);
+	s = "\n--------------------------------------------------\n";
 	s = {s, "COVERAGE SUMMARY \n"};		
 	s = {s, $sformatf("total coverage: %.1f \n", $get_coverage())};	
 	s = {s, $sformatf("cg_arbiter_priority 			coverage: %.1f \n", cg_arbiter_priority.get_coverage())			};	
@@ -300,8 +302,8 @@ function void mcdf_cov::report_phase(uvm_phase phase);
 	s = {s, $sformatf("cg_formatter_length 			coverage: %.1f \n", cg_formatter_length.get_coverage())			};	
 	s = {s, $sformatf("cg_mcdf_reg_illegal_access 	coverage: %.1f \n", cg_mcdf_reg_illegal_access.get_coverage())	};	
 	s = {s, $sformatf("cg_mcdf_reg_write_read     	coverage: %.1f \n", cg_mcdf_reg_write_read.get_coverage())		};	
-	s = "\n--------------------------------------------------\n"
-	`uvm_info(get_type_name(), s)
+	s = "\n--------------------------------------------------\n";
+	`uvm_info(get_type_name(), s, UVM_MEDIUM)
 	
 endfunction
 
@@ -365,11 +367,12 @@ task mcdf_cov::do_formatter_sample();
 		end
 		
 		forever begin
-			@(posedge fmt_vif.clk iff fmt_vif.rstn);
+			@(posedge fmt_vif.mon_cb.fmt_req);
 			delay_req_to_grant = 0;
 			forever begin
 				if(fmt_vif.fmt_grant === 1) begin
 					this.cg_formatter_grant.sample();
+					break;
 				end else begin
 					@(posedge fmt_vif.clk);
 					delay_req_to_grant++;

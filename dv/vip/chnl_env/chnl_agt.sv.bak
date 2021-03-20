@@ -35,13 +35,14 @@ class chnl_agt extends uvm_agent;
 	extern function new(string name = "chnl_agt", uvm_component parent);
 	extern virtual function void build_phase(uvm_phase phase);
     extern virtual function void connect_phase(uvm_phase phase);
+	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
     extern virtual function void set_interface(virtual chnl_intf vif);
 
 endclass
 
 //Constructor
-function chnl_agt::new(string name = "chnl_agt", uvm_component parent);
+function void chnl_agt::new(string name = "chnl_agt", uvm_component parent)
 	super.new(name, parent);
 endfunction
 
@@ -56,12 +57,12 @@ function void chnl_agt::build_phase(uvm_phase phase);
 endfunction
 
 //Run_Phase
-function void chnl_agt::connect_phase(uvm_phase phase);
+task chnl_agt::connect_phase(uvm_phase phase);
 
     super.connect_phase(phase);
     drv_i.seq_item_port.connect(sqr_i.seq_item_export);
     
-endfunction
+endtask
 
 // User Defined Methods:
 function void chnl_agt::set_interface(virtual chnl_intf vif);

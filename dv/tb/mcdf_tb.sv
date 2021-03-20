@@ -1,4 +1,5 @@
 
+
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
@@ -14,15 +15,13 @@
 
 `include "param_def.v"
 
-import uvm_pkg::*;
-`include "uvm_macros.sv"
+
 
 import chnl_pkg::*;
 import arb_pkg::*;
 import fmt_pkg::*;
 import reg_pkg::*;
 import mcdf_pkg::*;
-`include "mcdf_intf.sv"
 
 module mcdf_tb();
 
@@ -34,8 +33,8 @@ mcdf dut(
 	.rstn_i			(rstn				),
 	.cmd_i			(reg_if.cmd			),
 	.cmd_addr_i		(reg_if.cmd_addr	),
-	.cmd_data_i		(reg_if.cmd_data_s2m),
-	.cmd_data_o		(reg_if.cmd_data_m2s),
+	.cmd_data_i		(reg_if.cmd_data_m2s),
+	.cmd_data_o		(reg_if.cmd_data_s2m),
 
 	.ch0_data_i		(chnl0_if.ch_data	),
 	.ch0_vld_i		(chnl0_if.ch_valid	),
@@ -56,6 +55,9 @@ mcdf dut(
 	.fmt_end_o 		(fmt_if.fmt_end 	)
 );
 
+import uvm_pkg::*;
+`include "uvm_macros.svh"
+
 reg_intf	reg_if	(.*);
 chnl_intf	chnl0_if(.*);
 chnl_intf	chnl1_if(.*);
@@ -65,34 +67,34 @@ fmt_intf	fmt_if	(.*);
 mcdf_intf	mcdf_if	(.*);
 
 //mcdf interface monitoring MCDF ports and signals
-assign mcdf_if.chnl_en[0]	= dut.ctrl_regs_inst.slv0_en_o;
-assign mcdf_if.chnl_en[1]	= dut.ctrl_regs_inst.slv1_en_o;
-assign mcdf_if.chnl_en[2]	= dut.ctrl_regs_inst.slv2_en_o;
+assign mcdf_if.chnl_en[0]	= mcdf_tb.dut.ctrl_regs_inst.slv0_en_o;
+assign mcdf_if.chnl_en[1]	= mcdf_tb.dut.ctrl_regs_inst.slv1_en_o;
+assign mcdf_if.chnl_en[2]	= mcdf_tb.dut.ctrl_regs_inst.slv2_en_o;
 
 //arbiter interface monitoring arbiter ports
-assign arb_if.slv_prios[0]	= dut.arbiter_inst.slv0_prio_i;
-assign arb_if.slv_prios[1]	= dut.arbiter_inst.slv1_prio_i;
-assign arb_if.slv_prios[2]	= dut.arbiter_inst.slv2_prio_i;
-assign arb_if.slv_reqs[0]	= dut.arbiter_inst.slv0_req_i;
-assign arb_if.slv_reqs[1]	= dut.arbiter_inst.slv1_req_i;
-assign arb_if.slv_reqs[2]	= dut.arbiter_inst.slv2_req_i;
+assign arb_if.slv_prios[0]	= mcdf_tb.dut.arbiter_inst.slv0_prio_i;
+assign arb_if.slv_prios[1]	= mcdf_tb.dut.arbiter_inst.slv1_prio_i;
+assign arb_if.slv_prios[2]	= mcdf_tb.dut.arbiter_inst.slv2_prio_i;
+assign arb_if.slv_reqs[0]	= mcdf_tb.dut.arbiter_inst.slv0_req_i;
+assign arb_if.slv_reqs[1]	= mcdf_tb.dut.arbiter_inst.slv1_req_i;
+assign arb_if.slv_reqs[2]	= mcdf_tb.dut.arbiter_inst.slv2_req_i;
 
-assign arb_if.a2s_acks[0]	= dut.arbiter_inst.a2s0_ack_o;
-assign arb_if.a2s_acks[1]	= dut.arbiter_inst.a2s1_ack_o;
-assign arb_if.a2s_acks[2]	= dut.arbiter_inst.a2s2_ack_o;
+assign arb_if.a2s_acks[0]	= mcdf_tb.dut.arbiter_inst.a2s0_ack_o;
+assign arb_if.a2s_acks[1]	= mcdf_tb.dut.arbiter_inst.a2s1_ack_o;
+assign arb_if.a2s_acks[2]	= mcdf_tb.dut.arbiter_inst.a2s2_ack_o;
 
-assign arb_if.f2a_if_req	= dut.arbiter_inst.f2a_if_req_i;
+assign arb_if.f2a_id_req	= mcdf_tb.dut.arbiter_inst.f2a_id_req_i;
 
 initial begin
 //interface connect
-uvm_config_db#(virtual chnl_intf)::set(null	,"uvm_test_top", "chnl0_vif", chnl0_if);
-uvm_config_db#(virtual chnl_intf)::set(null	,"uvm_test_top", "chnl1_vif", chnl1_if);
-uvm_config_db#(virtual chnl_intf)::set(null	,"uvm_test_top", "chnl2_vif", chnl2_if);
+uvm_config_db#(virtual chnl_intf)::set(uvm_root::get()	,"uvm_test_top", "ch0_vif", chnl0_if);
+uvm_config_db#(virtual chnl_intf)::set(uvm_root::get()	,"uvm_test_top", "ch1_vif", chnl1_if);
+uvm_config_db#(virtual chnl_intf)::set(uvm_root::get()	,"uvm_test_top", "ch2_vif", chnl2_if);
 
-uvm_config_db#(virtual reg_intf)::set(null	,"uvm_test_top", "reg_vif", reg_if);
-uvm_config_db#(virtual arb_intf)::set(null	,"uvm_test_top", "arb_vif", arb_if);
-uvm_config_db#(virtual fmt_intf)::set(null	,"uvm_test_top", "fmt_vif", fmt_if);
-uvm_config_db#(virtual mcdf_intf)::set(null	,"uvm_test_top", "mcdf_vif", mcdf_if);
+uvm_config_db#(virtual reg_intf)::set(uvm_root::get()	,"uvm_test_top", "reg_vif", reg_if);
+uvm_config_db#(virtual arb_intf)::set(uvm_root::get()	,"uvm_test_top", "arb_vif", arb_if);
+uvm_config_db#(virtual fmt_intf)::set(uvm_root::get()	,"uvm_test_top", "fmt_vif", fmt_if);
+uvm_config_db#(virtual mcdf_intf)::set(uvm_root::get()	,"uvm_test_top", "mcdf_vif", mcdf_if);
 
 run_test();
 end

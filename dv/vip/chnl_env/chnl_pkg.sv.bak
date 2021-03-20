@@ -14,7 +14,7 @@
 `ifndef MCDF_CHNL_SV
 `define MCDF_CHNL_SV
 
-`include "chnl_intf.sv"
+`include "chnl_if.sv"
 package chnl_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"

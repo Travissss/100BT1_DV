@@ -34,13 +34,13 @@ class reg_mon extends uvm_monitor;
 	extern virtual function void build_phase(uvm_phase phase);
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
-    extern virtual function void set_interface(virtual fmt_intf vif);
+    extern virtual function void set_interface(virtual reg_intf vif);
     extern task mon_trans();
 
 endclass
 
 //Constructor
-function void reg_mon::new(string name = "reg_mon", uvm_component parent)
+function reg_mon::new(string name = "reg_mon", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -59,7 +59,7 @@ task reg_mon::run_phase(uvm_phase phase);
 endtask
 
 // User Defined Methods:
-function void reg_mon::set_interface(virtual fmt_intf vif);
+function void reg_mon::set_interface(virtual reg_intf vif);
     if(vif == null)
         `uvm_fatal(get_type_name(), "Error in getting Interface")
     else 
@@ -74,9 +74,9 @@ task reg_mon::mon_trans();
         pkt = new();
         pkt.cmd     = vif.mon_cb.cmd;
         pkt.addr    = vif.mon_cb.cmd_addr;
-        if(cmd == `WRITE)
+        if(vif.mon_cb.cmd == `WRITE)
             pkt.data = vif.mon_cb.cmd_data_m2s;
-        else if (cmd == `READ) begin
+        else if (vif.mon_cb.cmd == `READ) begin
             @(posedge vif.clk);
             pkt.data = vif.mon_cb.cmd_data_s2m;
         end

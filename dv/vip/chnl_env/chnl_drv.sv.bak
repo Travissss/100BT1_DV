@@ -34,7 +34,7 @@ class chnl_drv extends uvm_driver#(chnl_trans);
 	extern virtual task run_phase(uvm_phase phase);
 	// User Defined Methods:
     extern virtual function void set_interface(virtual chnl_intf vif);
-    extern task do_reset    ();
+    extern task do_reset    (virtual chnl_intf vif);
     extern task do_drive    ();
     extern task chnl_write  (input chnl_trans pkt);
     extern task chnl_idle   ();
@@ -42,7 +42,7 @@ class chnl_drv extends uvm_driver#(chnl_trans);
 endclass
 
 //Constructor
-function chnl_drv::new(string name = "chnl_drv", uvm_component parent);
+function void chnl_drv::new(string name = "chnl_drv", uvm_component parent);
 	super.new(name, parent);
 endfunction
 
@@ -89,15 +89,13 @@ task chnl_drv::do_drive();
 endtask
 
 task chnl_drv::chnl_write(input chnl_trans pkt);
-	int debug_i = 0;
-    foreach(pkt.data[i]) 
-    begin
+    foreach(pkt.data[i]) begin
         @(posedge vif.clk);
         vif.drv_cb.ch_valid <= 1;
         vif.drv_cb.ch_data <= pkt.data[i];
-		`uvm_info("chnl_drv debug_probe", $sformatf("interface ch_data = %0x",vif.mon_cb.ch_data), UVM_HIGH)
         @(negedge vif.clk);
         wait(vif.ch_ready === 1'b1);
+        `uvm_info(get_type_name(), $sformatf("sent data 'h%8x", pkt.data[i]), UVM_HIGH)
         repeat(pkt.data_nidles) chnl_idle();
     end
     repeat(pkt.pkt_nidles) chnl_idle();
