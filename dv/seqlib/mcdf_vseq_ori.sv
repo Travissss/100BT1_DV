@@ -1,8 +1,8 @@
 import mcdf_rgm_pkg::*;
 class mcdf_base_virtual_sequence extends uvm_sequence;
-    idle_reg_sequence idle_reg_seq;
-    write_reg_sequence write_reg_seq;
-    read_reg_sequence read_reg_seq;
+    reg_idle_sequence reg_idle_seq;
+    reg_write_sequence reg_write_seq;
+    reg_read_sequence reg_read_seq;
     chnl_data_sequence chnl_data_seq;
     fmt_config_sequence fmt_config_seq;
     mcdf_rgm rgm;
@@ -83,7 +83,7 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
       void'(this.diff_value(wr_val, rd_val, "SLV2_WR_REG"));
 
       // send IDLE command
-      `uvm_do_on(idle_reg_seq, p_sequencer.reg_sqr)
+      `uvm_do_on(reg_idle_seq, p_sequencer.reg_sqr)
     endtask
     task do_formatter();
       `uvm_do_on_with(fmt_config_seq, p_sequencer.fmt_sqr, {fifo == LONG_FIFO; bandwidth == HIGH_WIDTH;})
@@ -135,7 +135,7 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
       rgm.chnl2_ctrl_reg.mirror(status, UVM_CHECK, UVM_BACKDOOR);
 
       // send IDLE command
-      `uvm_do_on(idle_reg_seq, p_sequencer.reg_sqr)
+      `uvm_do_on(reg_idle_seq, p_sequencer.reg_sqr)
     endtask
     task do_formatter();
       `uvm_do_on_with(fmt_config_seq, p_sequencer.fmt_sqr, {fifo inside {SHORT_FIFO, ULTRA_FIFO}; bandwidth inside {LOW_WIDTH, ULTRA_WIDTH};})

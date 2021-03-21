@@ -33,17 +33,17 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
 	function new (string name = "mcdf_base_virtual_sequence");
       super.new(name);
     endfunction
-	//virtual task pre_body();
-	//	if(starting_phase != null) begin
-	//		starting_phase.raise_objection(this);
-	//	end
-	//endtask
+	virtual task pre_body();
+		if(starting_phase != null) begin
+			starting_phase.raise_objection(this);
+		end
+	endtask
 	
-	//virtual task post_body();
-	//	if(starting_phase != null) begin
-	//		starting_phase.drop_objection(this);
-	//	end
-	//endtask
+	virtual task post_body();
+		if(starting_phase != null) begin
+			starting_phase.drop_objection(this);
+		end
+	endtask
 	virtual task body();
 		`uvm_info(get_type_name(),"=====================STARTED=====================", UVM_LOW)
 		rgm = p_sequencer.mcdf_rgm;

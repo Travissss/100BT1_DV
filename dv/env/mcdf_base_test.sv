@@ -116,7 +116,7 @@ function void mcdf_base_test::end_of_elaboration_phase(uvm_phase phase);
 	super.end_of_elaboration_phase(phase);
 	uvm_root::get().set_report_verbosity_level_hier(UVM_HIGH);
 	uvm_root::get().set_report_max_quit_count(5);
-	//uvm_root::get().set_timeout(15us);
+	uvm_root::get().set_timeout(10ms);
 endfunction
 
 //run_phase
