@@ -41,7 +41,9 @@ class ctrl_reg extends uvm_reg;
 	//------------------------------------------
     covergroup value_cg;
         option.per_instance = 1;
-        reserved    : coverpoint reserved.value[25:0];
+        reserved    : coverpoint reserved.value[25:0]{
+                    bins a0[2] = {[26'h00000:26'h3ffffff]};
+                    }
         pkt_len     : coverpoint pkt_len.value[2:0];
         prio_level  : coverpoint prio_level.value[1:0];
         chnl_en     : coverpoint chnl_en.value[0:0];
@@ -113,8 +115,13 @@ class stat_reg extends uvm_reg;
 	//------------------------------------------
     covergroup value_cg;
         option.per_instance = 1;
-        reserved    : coverpoint reserved.value[23:0];
-        fifo_avail  : coverpoint fifo_avail.value[7:0];
+        reserved    : coverpoint reserved.value[23:0]{
+        bins a0[4] = {[24'h00000:24'hffffff]};
+        }
+        
+        fifo_avail  : coverpoint fifo_avail.value[7:0]{
+        bins a0[2] = {[8'h00:8'hff]};
+        }
     endgroup
     
 	//----------------------------------------------
