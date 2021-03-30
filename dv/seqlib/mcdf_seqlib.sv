@@ -16,6 +16,7 @@
   import uvm_pkg::*;
   `include "uvm_macros.svh"
 
+import con_pkg::*;
 //////////////////////////////////////////////////////////////////////////////////
 // 	-> basic sequence
 //////////////////////////////////////////////////////////////////////////////////
@@ -181,15 +182,18 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
     rand bit [1:0]  cmd = -1;
     rand bit [7:0]  addr= -1;
     rand bit [31:0] data= -1;
-
+	rand bit [31:0]	loc_low_timer;
+	rand bit [31:0]	loc_high_timer;
     
 	
 	//Factory Registration
 	//
     `uvm_object_utils_begin(reg_base_sequence)
-        `uvm_field_int          (cmd    , UVM_ALL_ON)
-        `uvm_field_int          (addr   , UVM_ALL_ON)
-        `uvm_field_int          (data   , UVM_ALL_ON)        
+        `uvm_field_int          (cmd    		, UVM_ALL_ON)
+        `uvm_field_int          (addr   		, UVM_ALL_ON)
+        `uvm_field_int          (data   		, UVM_ALL_ON)  
+		`uvm_field_int			(loc_low_timer	, UVM_ALL_ON)
+		`uvm_field_int			(loc_high_timer	, UVM_ALL_ON)		
     `uvm_object_utils_end
     
     //There is no need to use p_sequencer here
@@ -202,6 +206,8 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
         soft addr   == -1;
         soft cmd    == -1;
         soft data   == -1;    
+		soft loc_low_timer 	== -1;
+		soft loc_high_timer == -1;
     }
 
 	//----------------------------------------------
@@ -222,7 +228,10 @@ class reg_base_sequence extends uvm_sequence #(reg_trans);
         reg_trans req, rsp;
 		`uvm_do_with(req, {	local:: cmd  >= 0 ->  cmd   == local:: cmd ;
 							local:: addr >= 0 ->  addr  == local:: addr;
-							local:: data >= 0 ->  data	== local:: data;	})                           
+							local:: data >= 0 ->  data	== local:: data;	
+							local:: loc_low_timer >= 0 ->loc_low_timer == local:: loc_low_timer;
+							local:: loc_high_timer>= 0 ->loc_high_timer== local:: loc_high_timer;
+							})                           
         `uvm_info(get_type_name(), req.sprint(), UVM_HIGH)
         get_response(rsp);
         `uvm_info(get_type_name(), rsp.sprint(), UVM_HIGH)
@@ -254,7 +263,9 @@ class reg_idle_sequence extends reg_base_sequence;
     constraint cstr{
         data    == 0;
         addr    == 0;
-        cmd     == `IDLE;          
+        cmd     == `IDLE;   
+		loc_low_timer	== 2;
+		loc_high_timer 	== 18;
     };
     
     
@@ -325,6 +336,69 @@ class reg_write_sequence extends reg_base_sequence;
 	endfunction
     
 
+endclass
+
+//////////////////////////////////////////////////////////////////////////////////
+// 	-> sequence for converter
+//	->
+//	->
+//	->
+//////////////////////////////////////////////////////////////////////////////////
+class con_base_sequence extends uvm_sequence #(con_trans);
+    //------------------------------------------
+	// Data, Interface, port  Members
+	//------------------------------------------
+	rand bit [32:0]	seed 			= -1;
+	rand bit [1:0]	tx_mode 		= -1;	//0:SEND_Z	1:SEND_I  2:SEND_N;
+	rand bit [7:0]	wait_vld 		= -1;
+	rand bit 		master_slave 	= -1;
+	
+	//Factory Registration
+	//
+    `uvm_object_utils_begin(con_base_sequence)
+        `uvm_field_int          (seed      		, UVM_ALL_ON)
+        `uvm_field_int          (tx_mode     	, UVM_ALL_ON)
+        `uvm_field_int          (wait_vld		, UVM_ALL_ON)
+        `uvm_field_int          (master_slave	, UVM_ALL_ON)      
+    `uvm_object_utils_end    
+
+	//----------------------------------------------
+	// Methods
+	// ---------------------------------------------
+	// Standard UVM Methods:	
+	function new(string name = "con_base_sequence");
+		super.new(name);
+	endfunction
+
+	virtual task body();
+	
+			send_trans();
+    
+	endtask
+	
+	task send_trans();
+        con_trans req,rsp;
+		`uvm_do_with(req, {	local::seed       	>= 0 -> seed    	== local::seed;    
+							local::tx_mode 		>= 0 -> tx_mode		== local::tx_mode;
+							local::wait_vld  	>= 0 -> wait_vld	== local::wait_vld; 
+							local::master_slave >= 0 -> master_slave== local::master_slave;
+							})
+        get_response(rsp);
+        `uvm_info(get_type_name(), rsp.sprint(), UVM_HIGH)
+        assert(rsp.rsp)
+            else `uvm_error("[rsp error] %0t error response received", $time )
+    endtask
+    
+    function void post_randomize();
+        string s;
+        s = {s, "After Randomizztion \n"};
+        s = {s, "##############################\n"};
+        s = {s, "con_base_sequence trans content: \n"};
+        s = {s, super.sprint()};
+        s = {s, "##############################\n"};
+        `uvm_info(get_type_name(), s, UVM_MEDIUM)
+    endfunction
+		
 endclass
 
  

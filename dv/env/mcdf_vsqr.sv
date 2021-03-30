@@ -18,6 +18,7 @@ class mcdf_vsqr extends uvm_sequencer;
 	//------------------------------------------
 	reg_sqr		reg_sqr;
 	fmt_sqr		fmt_sqr;
+	con_sqr		con_sqr;
 	chnl_sqr	chnl_sqrs[3];
 	mcdf_rgm	mcdf_rgm;
 	

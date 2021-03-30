@@ -16,13 +16,18 @@ interface reg_intf(input clk, input rstn);
     logic   [7:0]   cmd_addr;    
 	logic	[31:0]	cmd_data_s2m;
     logic	[31:0]	cmd_data_m2s;
-
+	
+	logic	[31:0]	loc_low_timer;
+	logic	[31:0]	loc_high_timer;
 	
 	clocking drv_cb@(posedge clk);
 		// default input #1 output #1;
         output 		cmd;  
         output 		cmd_addr;    
         output 		cmd_data_m2s;
+		output		loc_low_timer;
+		output		loc_high_timer;
+		
         input  		cmd_data_s2m;
 
 	endclocking
@@ -33,7 +38,8 @@ interface reg_intf(input clk, input rstn);
         input  		cmd_addr;    
         input  		cmd_data_s2m;
         input  		cmd_data_m2s;
-
+		input		loc_low_timer;
+		input		loc_high_timer;
 	endclocking
 
 endinterface

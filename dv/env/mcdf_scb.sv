@@ -32,6 +32,7 @@ class mcdf_scb extends uvm_component;
 	// Data, Interface, port  Members
 	//------------------------------------------
     local int 	err_cnt;
+	local int	total_fmt_cnt;
 	local int	total_cnt;
 	local int	chnl_cnt[3];
 	
@@ -54,7 +55,8 @@ class mcdf_scb extends uvm_component;
 	uvm_blocking_get_imp_reg		#(reg_trans	, mcdf_scb)	reg_bg_imp;
 	//connect with reference model uvm_tlm_fifo
 	uvm_blocking_get_port			#(fmt_trans)			exp_bg_port[3];
-	
+	uvm_blocking_get_port			#(con_trans)			con_bg_port;
+	uvm_blocking_get_port			#(con_trans)			con_bg_mon_port;
 	//mailbox definition for imp method
 	mailbox #(mon_data_t) 	chnl_mbs[3];
 	mailbox #(fmt_trans)	fmt_mb;
@@ -75,6 +77,7 @@ class mcdf_scb extends uvm_component;
 	
 	// User Defined Methods:
     extern virtual function void set_interface(	virtual mcdf_intf 	mcdf_vif	,
+												virtual con_intf	con_vif		,
 												virtual chnl_intf 	chnl_vifs[3],
 												virtual arb_intf	arb_vif);
     extern task do_channel_disable_check(int id);
@@ -82,6 +85,7 @@ class mcdf_scb extends uvm_component;
     extern task do_data_compare();
     extern function int get_slave_id_with_prio();
 	
+	extern task do_pam_compare();
 	// TLM implementation define methods
 	extern virtual task put_chnl0(mon_data_t t);
 	extern virtual task put_chnl1(mon_data_t t);
@@ -113,6 +117,7 @@ function void mcdf_scb::build_phase(uvm_phase phase);
 	super.build_phase(phase);
 	err_cnt		= 0;
 	total_cnt	= 0;
+	total_fmt_cnt	= 0;
 	foreach(chnl_cnt[i]) chnl_cnt[i] = 0;
 	refmod	= mcdf_refmod::type_id::create("refmod", this);
 	
@@ -129,6 +134,8 @@ function void mcdf_scb::build_phase(uvm_phase phase);
     chnl2_bgpk_imp  = new("chnl2_bgpk_imp", this);
 	
 	foreach(exp_bg_port[i]) exp_bg_port[i] = new($sformatf("exp_bg_port[%0d]", i), this);
+	con_bg_port = new("con_bg_port", this);
+	con_bg_mon_port = new("con_bg_mon_port", this);
     
 	//create mailbox
 	fmt_mb = new();
@@ -146,6 +153,7 @@ function void mcdf_scb::connect_phase(uvm_phase phase);
 	refmod.in_bgpk_ports[2].connect(chnl2_bgpk_imp);
 
 	foreach(exp_bg_port[i]) exp_bg_port[i].connect(refmod.out_tlm_fifos[i].blocking_get_export);
+	con_bg_port.connect(refmod.con_tlm_fifo.blocking_get_export);
 endfunction
                          
 //run_phase
@@ -156,6 +164,7 @@ task mcdf_scb::run_phase(uvm_phase phase);
 		do_channel_disable_check(2);
 		do_arbiter_priority_check();
 		do_data_compare();
+		do_pam_compare();
 		//what is this run for?
 		//refmod.run();
     join
@@ -182,7 +191,8 @@ function void mcdf_scb::report_phase(uvm_phase phase);
 endfunction
 
 // User Defined Methods:
-function void mcdf_scb::set_interface(	virtual mcdf_intf 	mcdf_vif,
+function void mcdf_scb::set_interface(	virtual mcdf_intf 	mcdf_vif	,
+										virtual con_intf	con_vif		,
 										virtual chnl_intf 	chnl_vifs[3],
 										virtual arb_intf	arb_vif
 									);
@@ -191,7 +201,7 @@ function void mcdf_scb::set_interface(	virtual mcdf_intf 	mcdf_vif,
         `uvm_fatal(get_type_name(), "Error in getting mcdf_vif")
     else begin 
         this.mcdf_vif = mcdf_vif; 
-		this.refmod.set_interface(mcdf_vif);
+		this.refmod.set_interface(mcdf_vif, con_vif);
 	end
 	
 	if(chnl_vifs[0] == null | chnl_vifs[1] == null | chnl_vifs[2] == null)
@@ -232,13 +242,13 @@ task mcdf_scb::do_data_compare();
 		fmt_mb.get(mon_fmt_trans);
 		exp_bg_port[mon_fmt_trans.ch_id].get(ref_fmt_trans);
 		cmp = mon_fmt_trans.compare(ref_fmt_trans);
-		total_cnt++;
+		total_fmt_cnt++;
 		chnl_cnt[mon_fmt_trans.ch_id]++;
 		if(cmp == 0)begin
 			this.err_cnt++;
-			`uvm_error("scoreboard", $sformatf("total count %0d data compare failed", total_cnt))
+			`uvm_error("scoreboard", $sformatf("total count %0d data compare failed", total_fmt_cnt))
 		end else
-			`uvm_info("[CMPSUC]",$sformatf("total count %0d data compare passed", this.total_cnt), UVM_LOW)
+			`uvm_info("[CMPSUC]",$sformatf("total count %0d data compare passed", this.total_fmt_cnt), UVM_LOW)
 	end
 endtask
 
@@ -253,6 +263,30 @@ function int mcdf_scb::get_slave_id_with_prio();
 	end
 	return id;
 endfunction	
+
+task mcdf_scb::do_pam_compare();
+	con_trans	con_tr_ref, con_tr_mon;
+	bit			cmp1, cmp2;
+	bit	[31:0]	cmp;
+	forever begin
+		con_bg_port.get(con_tr_ref);
+		`uvm_info("[scoreboard]",$sformatf("REFERENCE TAn_ref = %0x, TBn_ref = %0x", con_tr_ref.TAn, con_tr_ref.TBn), UVM_LOW)
+		con_bg_mon_port.get(con_tr_mon);
+		`uvm_info("[scoreboard]",$sformatf("REFERENCE TAn_ref = %0x, DUT TAn_dut = %0x", con_tr_ref.TAn, con_tr_mon.TAn), UVM_LOW)
+		`uvm_info("[scoreboard]",$sformatf("REFERENCE TBn_ref = %0x, DUT TBn_dut = %0x", con_tr_ref.TBn, con_tr_mon.TBn), UVM_LOW)
+		cmp1 = (con_tr_mon.TAn == con_tr_ref.TAn) ;
+		cmp2 = (con_tr_mon.TBn == con_tr_ref.TBn) ;
+		cmp = cmp1 + cmp2;
+		total_cnt++;
+		if(cmp == 0 )begin
+			this.err_cnt++;
+		//	`uvm_error("scoreboard", $sformatf("total count %0d pam compare failed", cmp))
+		end else
+			`uvm_info("[CMPSUC]",$sformatf("total count %0d pam compare passed", this.total_cnt), UVM_LOW)
+	end
+endtask
+
+
 // TLM implementation define methods
 task mcdf_scb:: put_chnl0(mon_data_t t);
 	chnl_mbs[0].put(t);

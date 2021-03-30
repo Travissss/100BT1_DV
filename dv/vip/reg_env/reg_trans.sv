@@ -19,15 +19,20 @@ class reg_trans extends uvm_sequence_item;
 	rand bit	[1:0]   cmd;
 	rand bit	[7:0]   addr;    
 	rand bit	[31:0]	data;
+	
+	rand bit	[31:0]	loc_low_timer;
+	rand bit	[31:0]	loc_high_timer;
 	bit					rsp;
     
 	//Factory Registration
 	//
     `uvm_object_utils_begin(reg_trans)
-        `uvm_field_int(cmd  , UVM_ALL_ON)
-        `uvm_field_int(addr , UVM_ALL_ON)
-        `uvm_field_int(data , UVM_ALL_ON)
-        `uvm_field_int(rsp  , UVM_ALL_ON)
+        `uvm_field_int(cmd  			, UVM_ALL_ON)
+        `uvm_field_int(addr 			, UVM_ALL_ON)
+        `uvm_field_int(data 			, UVM_ALL_ON)
+		`uvm_field_int(loc_low_timer	, UVM_ALL_ON)
+		`uvm_field_int(loc_high_timer	, UVM_ALL_ON)
+        `uvm_field_int(rsp  			, UVM_ALL_ON)
     `uvm_object_utils_end
 	//------------------------------------------
 	// Constraints
@@ -37,7 +42,9 @@ class reg_trans extends uvm_sequence_item;
         soft addr   inside {`SLV0_RW_ADDR, `SLV1_RW_ADDR, `SLV2_RW_ADDR, `SLV0_R_ADDR, `SLV1_R_ADDR, `SLV2_R_ADDR};
         soft addr[7:5] == 0;
         addr[4] == 1 -> soft cmd == `READ;
-        (addr[7:4] == 0 && cmd == `WRITE) -> soft data[31:6] == 0;      
+        (addr[7:4] == 0 && cmd == `WRITE) -> soft data[31:6] == 0;    
+		soft loc_low_timer 	== 2;
+		soft loc_high_timer == 18;	
     };
 	
 	//----------------------------------------------

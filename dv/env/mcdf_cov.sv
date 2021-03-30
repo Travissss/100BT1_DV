@@ -22,6 +22,7 @@ class mcdf_cov extends uvm_component;
 	virtual mcdf_intf	mcdf_vif;
 	virtual reg_intf	reg_vif;
 	virtual fmt_intf	fmt_vif;
+	virtual con_intf	con_vif;
 	int					delay_req_to_grant;
 	
 	//Factory Registration
@@ -250,6 +251,7 @@ class mcdf_cov extends uvm_component;
 												virtual reg_intf 	reg_vif	    ,
 												virtual arb_intf 	arb_vif     ,
 												virtual fmt_intf 	fmt_vif	    ,
+												virtual con_intf 	con_vif	    ,
 												virtual mcdf_intf 	mcdf_vif	
 												);
 	// Covergroup Sample Methods:
@@ -312,12 +314,14 @@ function void mcdf_cov::set_interface(	virtual chnl_intf 	chnl_vifs[3],
 										virtual reg_intf 	reg_vif	    ,
 										virtual arb_intf 	arb_vif     ,
 										virtual fmt_intf 	fmt_vif	    ,
+										virtual con_intf 	con_vif	    ,
 										virtual mcdf_intf 	mcdf_vif	
 											);
 	this.chnl_vifs	= chnl_vifs; 
 	this.reg_vif	= reg_vif;       
 	this.arb_vif    = arb_vif;  
 	this.fmt_vif	= fmt_vif;       
+	this.con_vif	= con_vif;       
 	this.mcdf_vif	= mcdf_vif;
 
 	if(chnl_vifs[0] == null || chnl_vifs[1] == null || chnl_vifs[2] == null)
@@ -328,6 +332,8 @@ function void mcdf_cov::set_interface(	virtual chnl_intf 	chnl_vifs[3],
 		$error("reg interface handle is NULL, please check if target interface has been intantiated");
 	if(fmt_vif == null)
 		$error("fmt interface handle is NULL, please check if target interface has been intantiated");
+	if(con_vif == null)
+		$error("con interface handle is NULL, please check if target interface has been intantiated");
 	if(mcdf_vif == null)
 		$error("mcdf interface handle is NULL, please check if target interface has been intantiated");
 											

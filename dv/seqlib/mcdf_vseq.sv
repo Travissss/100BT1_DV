@@ -1,3 +1,4 @@
+
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
@@ -25,6 +26,7 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
 	reg_read_sequence	reg_read_seq;
 	chnl_data_sequence	chnl_data_seq;
 	fmt_config_sequence	fmt_config_seq;
+	con_base_sequence	con_base_seq;
 	mcdf_rgm			rgm;
 	
 	`uvm_object_utils(mcdf_base_virtual_sequence)
@@ -50,7 +52,10 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
 		
 		this.do_reg();
 		this.do_formatter();
+	fork
+		this.do_converter();
 		this.do_data();
+	join
 		`uvm_info(get_type_name(),"=====================FINISHED=====================", UVM_LOW)
 	endtask
 	
@@ -64,6 +69,11 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
 	
 	endtask
 
+	//
+	virtual task do_converter();
+	
+	endtask
+	
 	//do data transition form 3 channel slaves
 	virtual task do_data();
 	
@@ -133,6 +143,14 @@ class mcdf_data_consistence_basic_virtual_sequence extends mcdf_base_virtual_seq
 	
 		`uvm_do_on_with(fmt_config_seq, p_sequencer.fmt_sqr, {	fifo 		== LONG_FIFO;
 																bandwidth	== HIGH_WIDTH;})
+	
+	endtask
+	
+	virtual task do_converter();
+	
+		`uvm_do_on_with(con_base_seq, p_sequencer.con_sqr, {	tx_mode 	== 1;
+																wait_vld	== 10;
+																master_slave == 0;})
 	
 	endtask
 

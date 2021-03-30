@@ -11,7 +11,7 @@
 // 	-> generate clock and resetn
 //////////////////////////////////////////////////////////////////////////////////
 
-interface mcdf_intf(output logic clk, output logic rstn);
+interface mcdf_intf(output logic clk, output clk_25m, output clk_33m, output logic rstn);
     
     logic chnl_en[3];
 	
@@ -23,11 +23,13 @@ interface mcdf_intf(output logic clk, output logic rstn);
     // clock generation
     initial begin
         clk <= 0;
-        forever begin
-            #5 clk <= ~clk;
-        end
+		clk_25m <= 0;
+		clk_33m <= 0;
     end
-    
+	
+  always #8 clk <= ~clk;
+  always #4 clk_25m <= ~clk_25m;
+  always #3 clk_33m <= ~clk_33m;
     // reset signal
     initial begin
         #10 rstn <= 0;

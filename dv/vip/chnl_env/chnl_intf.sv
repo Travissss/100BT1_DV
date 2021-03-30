@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 interface chnl_intf(input clk, input rstn);
-	logic	[31:0]	ch_data;
+	logic	[7:0]	ch_data;
 	logic			ch_valid;
 	logic 			ch_ready;
 	

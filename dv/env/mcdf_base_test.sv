@@ -31,6 +31,7 @@ class mcdf_base_test extends uvm_test;
 	virtual reg_intf	reg_vif;
 	virtual arb_intf	arb_vif;
 	virtual fmt_intf	fmt_vif;
+	virtual con_intf	con_vif;
 	virtual mcdf_intf	mcdf_vif;
 	
 	//------------------------------------------
@@ -59,6 +60,7 @@ class mcdf_base_test extends uvm_test;
 										virtual reg_intf 	reg_vif		,
 										virtual arb_intf 	arb_vif		,
 										virtual fmt_intf 	fmt_vif		,
+										virtual con_intf 	con_vif		,
 										virtual mcdf_intf 	mcdf_vif	
 	);
 	extern virtual task run_top_virtual_sequence();
@@ -98,6 +100,9 @@ function void mcdf_base_test::build_phase(uvm_phase phase);
 	if(!uvm_config_db#(virtual fmt_intf)::get(this,"","fmt_vif", fmt_vif)) begin
 		`uvm_fatal("No fmt_vif", "fmt_vif is not set!")
 	end	
+	if(!uvm_config_db#(virtual con_intf)::get(this,"","con_vif", con_vif)) begin
+		`uvm_fatal("No con_vif", "con_vif is not set!")
+	end	
 	if(!uvm_config_db#(virtual mcdf_intf)::get(this,"","mcdf_vif", mcdf_vif)) begin
 		`uvm_fatal("No mcdf_vif", "mcdf_vif is not set!")
 	end	
@@ -107,7 +112,7 @@ endfunction
 //connect_phase
 function void mcdf_base_test::connect_phase(uvm_phase phase);
 	super.connect_phase(phase);
-	set_interface(chnl0_vif, chnl1_vif, chnl2_vif, reg_vif, arb_vif, fmt_vif, mcdf_vif);
+	set_interface(chnl0_vif, chnl1_vif, chnl2_vif, reg_vif, arb_vif, fmt_vif, con_vif, mcdf_vif);
 
 endfunction
 
@@ -115,8 +120,8 @@ endfunction
 function void mcdf_base_test::end_of_elaboration_phase(uvm_phase phase);
 	super.end_of_elaboration_phase(phase);
 	uvm_root::get().set_report_verbosity_level_hier(UVM_HIGH);
-	uvm_root::get().set_report_max_quit_count(5);
-	uvm_root::get().set_timeout(10ms);
+	uvm_root::get().set_report_max_quit_count(100);
+	uvm_root::get().set_timeout(15ms);
 endfunction
 
 //run_phase
@@ -146,16 +151,18 @@ function void mcdf_base_test::set_interface(	virtual chnl_intf 	chnl0_vif	,
 									virtual reg_intf 	reg_vif		,
 									virtual arb_intf 	arb_vif		,
 									virtual fmt_intf 	fmt_vif		,
+									virtual con_intf 	con_vif		,
 									virtual mcdf_intf 	mcdf_vif);
 									
 	env_i.chnl_agt_i[0].set_interface(chnl0_vif);
 	env_i.chnl_agt_i[1].set_interface(chnl1_vif);
 	env_i.chnl_agt_i[2].set_interface(chnl2_vif);
 	env_i.fmt_agt_i.set_interface(fmt_vif);
+	env_i.con_agt_i.set_interface(con_vif);
 	env_i.reg_agt_i.set_interface(reg_vif);
 	
-	env_i.scb_i.set_interface(mcdf_vif, '{chnl0_vif, chnl1_vif, chnl2_vif}, arb_vif);
-	env_i.cov_i.set_interface('{chnl0_vif, chnl1_vif, chnl2_vif}, reg_vif, arb_vif, fmt_vif, mcdf_vif);
+	env_i.scb_i.set_interface(mcdf_vif, con_vif, '{chnl0_vif, chnl1_vif, chnl2_vif}, arb_vif);
+	env_i.cov_i.set_interface('{chnl0_vif, chnl1_vif, chnl2_vif}, reg_vif, arb_vif, fmt_vif, con_vif, mcdf_vif);
 	env_i.vsqr_i.set_interface(mcdf_vif);
 endfunction
 

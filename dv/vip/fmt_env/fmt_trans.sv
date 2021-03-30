@@ -18,8 +18,8 @@ class fmt_trans extends uvm_sequence_item;
 	//------------------------------------------
     rand fmt_fifo_t         fmt_fifo;
     rand fmt_bandwidth_t    fmt_bandwidth;
-    bit  [9:0]  length;
-    bit  [31:0] data[];
+    bit  [31:0]  length;
+    bit  [7:0] data[];
     bit  [1:0]  ch_id;
     bit         rsp;
 	

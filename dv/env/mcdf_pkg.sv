@@ -22,6 +22,7 @@ import chnl_pkg::*;
 import reg_pkg::*;
 import arb_pkg::*;
 import fmt_pkg::*;
+import con_pkg::*;
 import mcdf_rgm_pkg::*;
 
 typedef struct packed{

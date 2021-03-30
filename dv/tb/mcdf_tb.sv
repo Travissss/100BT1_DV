@@ -1,5 +1,6 @@
 
 
+
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
@@ -20,6 +21,7 @@
 import chnl_pkg::*;
 import arb_pkg::*;
 import fmt_pkg::*;
+import con_pkg::*;
 import reg_pkg::*;
 import mcdf_pkg::*;
 
@@ -29,30 +31,48 @@ logic	clk;
 logic	rstn;
 
 mcdf dut(
-	.clk_i			(clk				),
-	.rstn_i			(rstn				),
-	.cmd_i			(reg_if.cmd			),
-	.cmd_addr_i		(reg_if.cmd_addr	),
-	.cmd_data_i		(reg_if.cmd_data_m2s),
-	.cmd_data_o		(reg_if.cmd_data_s2m),
+			.clk_i			(clk				),
+			.clk_25m_i		(clk_25m			),
+			.clk_33m_i		(clk_33m			),
+			.rstn_i			(rstn				),
+			.cmd_i			(reg_if.cmd			),
+			.cmd_addr_i		(reg_if.cmd_addr	),
+			.cmd_data_i		(reg_if.cmd_data_m2s),
+			.cmd_data_o		(reg_if.cmd_data_s2m),
 
-	.ch0_data_i		(chnl0_if.ch_data	),
-	.ch0_vld_i		(chnl0_if.ch_valid	),
-	.ch1_data_i		(chnl1_if.ch_data	),
-	.ch1_vld_i		(chnl1_if.ch_valid	),
-	.ch2_data_i		(chnl2_if.ch_data	),
-	.ch2_vld_i		(chnl2_if.ch_valid	),
-	.ch0_ready_o	(chnl0_if.ch_ready	),
-	.ch1_ready_o	(chnl1_if.ch_ready	),
-	.ch2_ready_o	(chnl2_if.ch_ready	),
-            
-	.fmt_grant_i	(fmt_if.fmt_grant	),
-	.fmt_chid_o		(fmt_if.fmt_chid	),
-	.fmt_req_o		(fmt_if.fmt_req		),
-	.fmt_length_o	(fmt_if.fmt_length	),
-	.fmt_data_o		(fmt_if.fmt_data	),
-	.fmt_start_o	(fmt_if.fmt_start	),
-	.fmt_end_o 		(fmt_if.fmt_end 	)
+			.ch0_data_i		(chnl0_if.ch_data	),
+			.ch0_vld_i		(chnl0_if.ch_valid	),
+			.ch1_data_i		(chnl1_if.ch_data	),
+			.ch1_vld_i		(chnl1_if.ch_valid	),
+			.ch2_data_i		(chnl2_if.ch_data	),
+			.ch2_vld_i		(chnl2_if.ch_valid	),
+			.ch0_ready_o	(chnl0_if.ch_ready	),
+			.ch1_ready_o	(chnl1_if.ch_ready	),
+			.ch2_ready_o	(chnl2_if.ch_ready	),
+					
+			.fmt_grant_i	(fmt_if.fmt_grant	),
+			.fmt_chid_o		(fmt_if.fmt_chid	),
+			.fmt_req_o		(fmt_if.fmt_req		),
+			.fmt_length_o	(fmt_if.fmt_length	),
+			.fmt_data_o		(fmt_if.fmt_data	),
+			.fmt_start_o	(fmt_if.fmt_start	),
+			.fmt_end_o 		(fmt_if.fmt_end 	),
+			
+			.tx_data        (		),
+
+/*input	*/	.loc_low_timer	(reg_if.loc_low_timer	),
+/*input	*/	.loc_high_timer	(reg_if.loc_high_timer	),
+	
+/*output*/	.loc_rcvr_status(con_if.loc_rcvr_status	),
+		
+/*input	*/	.tx_mode		(con_if.tx_mode			), 
+/*input	*/	.rcv_vld		(con_if.rcv_vld			),
+/*input	*/	.scr_valid      (1'b1),//con_if.scr_valid      	),
+/*input	*/	.master_slave_sw(con_if.master_slave	),	//1:slave, 0:master
+/*input	*/	.seed           (con_if.seed           	),
+/*output*/	.tx_enable      (con_if.tx_enable      	),
+/*output*/	.TAn           	(con_if.TAn       		),
+/*output*/	.TBn            (con_if.TBn            	) // -1 01, 0 00, +1 11 
 );
 
 import uvm_pkg::*;
@@ -64,6 +84,7 @@ chnl_intf	chnl1_if(.*);
 chnl_intf	chnl2_if(.*);
 arb_intf	arb_if	(.*);
 fmt_intf	fmt_if	(.*);
+con_intf	con_if	(.*);
 mcdf_intf	mcdf_if	(.*);
 
 //mcdf interface monitoring MCDF ports and signals
@@ -94,6 +115,7 @@ uvm_config_db#(virtual chnl_intf)::set(uvm_root::get()	,"uvm_test_top", "ch2_vif
 uvm_config_db#(virtual reg_intf)::set(uvm_root::get()	,"uvm_test_top", "reg_vif", reg_if);
 uvm_config_db#(virtual arb_intf)::set(uvm_root::get()	,"uvm_test_top", "arb_vif", arb_if);
 uvm_config_db#(virtual fmt_intf)::set(uvm_root::get()	,"uvm_test_top", "fmt_vif", fmt_if);
+uvm_config_db#(virtual con_intf)::set(uvm_root::get()	,"uvm_test_top", "con_vif", con_if);
 uvm_config_db#(virtual mcdf_intf)::set(uvm_root::get()	,"uvm_test_top", "mcdf_vif", mcdf_if);
 
 run_test();

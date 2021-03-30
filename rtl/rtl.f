@@ -1,0 +1,13 @@
+$MCDF_ROOT/../rtl/rtl_v2/mcdf.v
+$MCDF_ROOT/../rtl/rtl_v2/rst_sync_gen.v
+$MCDF_ROOT/../rtl/rtl_v2/gmii_to_mgmii.v
+$MCDF_ROOT/../rtl/rtl_v2/cov_4B3B_0.v
+$MCDF_ROOT/../rtl/rtl_v2/scr_data_gen.v
+$MCDF_ROOT/../rtl/rtl_v2/stream_scr_slv.v
+$MCDF_ROOT/../rtl/rtl_v2/stream_scrambler.v
+$MCDF_ROOT/../rtl/rtl_v2/syb_mapping.v
+$MCDF_ROOT/../rtl/rtl_v2/arbiter.v
+$MCDF_ROOT/../rtl/rtl_v2/formater.v
+$MCDF_ROOT/../rtl/rtl_v2/param_def.v
+$MCDF_ROOT/../rtl/rtl_v2/reg.v
+$MCDF_ROOT/../rtl/rtl_v2/slave_fifo.v

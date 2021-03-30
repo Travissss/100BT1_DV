@@ -75,6 +75,8 @@ task reg_drv::do_reset();
         vif.cmd             <= `IDLE;
         vif.cmd_addr        <= 8'b0;
         vif.cmd_data_m2s    <= 32'b0;
+		vif.loc_low_timer	<= 32'b0;
+		vif.loc_high_timer	<= 32'b0;
     end
     `uvm_info("reg_drv::", $sformatf("run_phase debug:get out from run_phase do_reset() "), UVM_HIGH)
 endtask
@@ -97,28 +99,37 @@ task reg_drv::reg_write(reg_trans pkt);
     @(posedge vif.clk iff vif.rstn);
     case(pkt.cmd)
         `WRITE:begin
-            vif.drv_cb.cmd             <= pkt.cmd ;       
-            vif.drv_cb.cmd_addr        <= pkt.addr;
-            vif.drv_cb.cmd_data_m2s    <= pkt.data;        
+            vif.drv_cb.cmd             	<= pkt.cmd ;       
+            vif.drv_cb.cmd_addr        	<= pkt.addr;
+            vif.drv_cb.cmd_data_m2s    	<= pkt.data;
+			vif.drv_cb.loc_low_timer	<= pkt.loc_low_timer;
+			vif.drv_cb.loc_high_timer	<= pkt.loc_high_timer;
         end
         
         `READ: begin
-            vif.drv_cb.cmd         <= pkt.cmd         ;       
-            vif.drv_cb.cmd_addr    <= pkt.addr    ;
-            repeat(2) @(neggyGedge vif.clk);
+            vif.drv_cb.cmd         	 <= pkt.cmd;       
+            vif.drv_cb.cmd_addr    	 <= pkt.addr;
+			vif.drv_cb.loc_low_timer <= pkt.loc_low_timer;
+			vif.drv_cb.loc_high_timer<= pkt.loc_high_timer;
+            repeat(2) @(negedge vif.clk);
             pkt.data        = vif.cmd_data_s2m;     
         end
         
-        `IDLE: this.reg_idle();
+        `IDLE: begin
+			this.reg_idle();
+			vif.drv_cb.loc_low_timer	<= pkt.loc_low_timer;
+			vif.drv_cb.loc_high_timer	<= pkt.loc_high_timer;
+		end
+	
 	endcase
     `uvm_info("reg_drv::", $sformatf("run_phase debug:get out from run_phase reg_write() "), UVM_HIGH)
 endtask
 
 task reg_drv::reg_idle();
     @(posedge vif.clk);
-        vif.drv_cb.cmd             <= `IDLE;
-        vif.drv_cb.cmd_addr        <= 8'b0;
-        vif.drv_cb.cmd_data_m2s    <= 32'b0;
+        vif.drv_cb.cmd             	<= `IDLE;
+        vif.drv_cb.cmd_addr        	<= 8'b0;
+        vif.drv_cb.cmd_data_m2s    	<= 32'b0;
 endtask
 
 `endif

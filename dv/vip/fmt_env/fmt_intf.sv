@@ -15,8 +15,8 @@ interface fmt_intf(input clk, input rstn);
     logic           fmt_grant;
     logic   [1:0]   fmt_chid;
     logic           fmt_req;
-    logic   [5:0]   fmt_length;    
-	logic	[31:0]	fmt_data;
+    logic   [31:0]  fmt_length;    
+	logic	[7:0]	fmt_data;
 	logic			fmt_start;
 	logic 			fmt_end;
 	

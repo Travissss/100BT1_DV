@@ -72,8 +72,10 @@ task reg_mon::mon_trans();
     forever begin
         @(posedge vif.clk iff(vif.rstn && vif.mon_cb.cmd != `IDLE));
         pkt = new();
-        pkt.cmd     = vif.mon_cb.cmd;
-        pkt.addr    = vif.mon_cb.cmd_addr;
+        pkt.cmd     		= vif.mon_cb.cmd;
+        pkt.addr    		= vif.mon_cb.cmd_addr;
+		pkt.loc_low_timer	= vif.mon_cb.loc_low_timer;
+		pkt.loc_high_timer	= vif.mon_cb.loc_high_timer;
         if(vif.mon_cb.cmd == `WRITE)
             pkt.data = vif.mon_cb.cmd_data_m2s;
         else if (vif.mon_cb.cmd == `READ) begin
