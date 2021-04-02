@@ -90,6 +90,7 @@ class mcdf_base_virtual_sequence extends uvm_sequence;
 	endfunction
 	
 endclass
+
 //////////////////////////////////////////////////////////////////////////////////
 // 	-> child virtual sequences
 //////////////////////////////////////////////////////////////////////////////////
@@ -149,6 +150,7 @@ class mcdf_data_consistence_basic_virtual_sequence extends mcdf_base_virtual_seq
 	virtual task do_converter();
 	
 		`uvm_do_on_with(con_base_seq, p_sequencer.con_sqr, {	tx_mode 	== 1;
+																seed == 33'b101100000000101111010000101010000;
 																wait_vld	== 10;
 																master_slave == 0;})
 	
@@ -181,6 +183,8 @@ class mcdf_data_consistence_basic_virtual_sequence extends mcdf_base_virtual_seq
         `uvm_info(get_type_name(), "get into do_data but never exit2", UVM_MEDIUM)
 	endtask			
 endclass
+
+
 
 //////////////////////////////////////////////////////////////////////////////////
 // 	-> prio, enable, length are full random
@@ -332,7 +336,125 @@ class mcdf_reg_builtin_virtual_sequence extends mcdf_base_virtual_sequence;
  
 endclass
 
+//////////////////////////////////////////////////////////////////////////////////
+// 	-> prio, enable, length are full random
+//////////////////////////////////////////////////////////////////////////////////
+class phy_tx_mode_virtual_sequence extends mcdf_base_virtual_sequence;
+	
+	//Factory Registration
+	//
+    `uvm_object_utils(phy_tx_mode_virtual_sequence)
 
+	//----------------------------------------------
+	// Methods
+	// ---------------------------------------------
+	// Standard UVM Methods:	
+	function new(string name = "phy_tx_mode_virtual_sequence");
+		super.new(name);
+	endfunction
+	
+	virtual task body();
+		`uvm_info(get_type_name(),"=====================STARTED=====================", UVM_LOW)
+		rgm = p_sequencer.mcdf_rgm;
+		
+		this.do_reg();
+		this.do_formatter();
+	fork
+		this.do_converter();
+		this.do_data_id(0);
+	join
+	
+	fork
+		this.do_converter();
+		this.do_data_id(1);
+	join
+	
+	fork
+		this.do_converter();
+		this.do_data_id(2);
+	join
+		`uvm_info(get_type_name(),"=====================FINISHED=====================", UVM_LOW)
+	endtask
+	
+	//user defined, extends from base sequence
+	//do register configuration
+	virtual task do_reg();
+		bit [31:0]		ch0_wr_val;
+		bit [31:0]		ch1_wr_val;
+		bit [31:0]		ch2_wr_val;
+		uvm_status_e	status;
+		
+		//reset uvm_reg_block: a built in task reset()
+		rgm.reset();
+		
+		//slv channel with length = {4, 8, 16, 32}, prio = {[0:3]}, en = {[0:1]}
+		ch0_wr_val = ($urandom_range(0,3) << 3) + ($urandom_range(0,3) << 1) + 1;
+		ch1_wr_val = ($urandom_range(0,3) << 3) + ($urandom_range(0,3) << 1) + 1;
+		ch2_wr_val = ($urandom_range(0,3) << 3) + ($urandom_range(0,3) << 1) + 1;
+		
+		//set all desired value of WR register via uvm_reg::set()
+		rgm.chnl0_ctrl_reg.set(ch0_wr_val);
+		rgm.chnl1_ctrl_reg.set(ch1_wr_val);
+		rgm.chnl2_ctrl_reg.set(ch2_wr_val);
+		
+		//update them via uvm_reg_block::update()
+		rgm.update(status);
+		
+		//wait until the registers in DUT have been updated
+		#100ns;
+		
+		//compare desired value and mirror value
+		rgm.chnl0_ctrl_reg.mirror(status, UVM_CHECK, UVM_BACKDOOR);
+		rgm.chnl1_ctrl_reg.mirror(status, UVM_CHECK, UVM_BACKDOOR);
+		rgm.chnl2_ctrl_reg.mirror(status, UVM_CHECK, UVM_BACKDOOR);
+		
+		//send idle command
+		`uvm_do_on(reg_idle_seq, p_sequencer.reg_sqr)
+	endtask
+
+	//
+	virtual task do_formatter();
+		`uvm_do_on_with(fmt_config_seq, p_sequencer.fmt_sqr, 
+			{	fifo inside {SHORT_FIFO, ULTRA_FIFO};
+				bandwidth == HIGH_WIDTH;})
+	endtask
+	//do data transition form 3 channel slaves
+	virtual task do_data_id( input int id);
+		fork
+			`uvm_do_on_with(chnl_data_seq, p_sequencer.chnl_sqrs[id], 
+			{	ntrans inside {[100:200]};
+				ch_id==id; 
+				data_nidles inside {[0:3]};
+				pkt_nidles inside {1,2,4,8}; 
+				data_size inside {8,16,32};})
+				
+			// `uvm_do_on_with(chnl_data_seq, p_sequencer.chnl_sqrs[1], 
+			// {	ntrans 		inside {[100:200]}; 
+				// ch_id==1; 
+				// data_nidles inside {[0:3]}; 
+				// pkt_nidles 	inside {1,2,4,8}; 
+				// data_size 	inside {8,16,32};})
+				
+			// `uvm_do_on_with(chnl_data_seq, p_sequencer.chnl_sqrs[2], 
+			// {	ntrans 		inside {[100:200]}; 
+				// ch_id==2; 
+				// data_nidles inside {[0:3]}; 
+				// pkt_nidles 	inside {1,2,4,8}; 
+				// data_size 	inside {8,16,32};})
+		join
+		#10ns;
+	endtask	
+	
+    virtual task do_converter();
+	
+		`uvm_do_on_with(con_base_seq, p_sequencer.con_sqr, {	tx_mode inside {[0:2]};
+																seed == 33'b101100000000101111010000101010000;
+																wait_vld inside {[0:31]};
+																master_slave inside{0, 1};})
+	
+	endtask
+
+endclass
 
 
 

@@ -22,6 +22,7 @@ import  "DPI-C" converter_3b_pam=function void converter_3b_pam(
 	input bit [1:0] tx_mode		,
 	input bit [31:0]loop_num,
 	input bit 		master_slave,
+	output bit [31:0]loop_o			,
 	output bit [1:0]TAn			,
 	output bit [1:0]TBn			
 	);
@@ -137,16 +138,15 @@ task mcdf_refmod::do_packet(int id);
 	bit	[31:0]	mii_len;
 	bit [31:0]	scr_len;
 	bit [31:0]	real_scr_len;
-	bit [1:0] TAn = 1;
-	bit [1:0] TBn = 3;
+	bit [1:0] TAn;
+	bit [1:0] TBn;
 	
 	int			loop_i;
 	forever begin
 		tx_mode = con_vif.tx_mode;
 		this.in_bgpk_ports[id].peek(mon_tr);
-		//fmt_tr = new();
+		//con_tr_ref = new("con_tr_ref");
 		fmt_tr = new("fmt_tr");
-		con_tr_ref = new("con_tr_ref");
 		fmt_tr.length 	= 4 << (this.get_field_value(id, RW_LEN) & 'b11);
 		mii_len  		= (fmt_tr.length << 1 + (1 << (this.get_field_value(id, RW_LEN) & 'b11)));
 		scr_len  		= 12 << (this.get_field_value(id, RW_LEN) & 'b11);
@@ -191,21 +191,26 @@ task mcdf_refmod::do_packet(int id);
 		
 		for (int j = 0; j < real_scr_len; j++) begin
 			bit [31:0] loop_num = j;
+			bit [31:0] loop_o;
 			bit [2:0] tmp;
 			int scr_data0, scr_data1, scr_data2;
+			con_tr_ref = new("con_tr_ref");
 			tmp = scr_data[j];
 			scr_data0 = (tmp[0] == 1) ? 1 : 0;
 			scr_data1 = (tmp[1] == 1) ? 1 : 0;
 			scr_data2 = (tmp[2] == 1) ? 1 : 0;
-			converter_3b_pam(scr_data0,scr_data1, scr_data2, tx_mode, loop_num, master_slave, TAn, TBn);
+			converter_3b_pam(scr_data0,scr_data1, scr_data2, tx_mode,  loop_num, master_slave, loop_o,TAn, TBn);
 			`uvm_info("[REFERENCE MODEL ]",$sformatf("scr_data[%0d] = %0x, scr_data0, 1, 2 = %0x, %0x, %0x", j, scr_data[j], scr_data0, scr_data1, scr_data2), UVM_LOW)
 			`uvm_info("[REFERENCE MODEL ]",$sformatf("tx_mode = %0x", tx_mode), UVM_LOW)
 			`uvm_info("[REFERENCE MODEL ]",$sformatf("loop_num = %0x", loop_num), UVM_LOW)
+			`uvm_info("[REFERENCE MODEL ]",$sformatf("loop_o = %0x", loop_o), UVM_LOW)
 			`uvm_info("[REFERENCE MODEL ]",$sformatf("master_slave = %0x", master_slave), UVM_LOW)
 			`uvm_info("[REFERENCE MODEL ]",$sformatf("TAn = %0x, TBn = %0x", TAn, TBn), UVM_LOW)
 			con_tr_ref.TAn = TAn;
 			con_tr_ref.TBn = TBn;
-			con_tlm_fifo.put(con_tr_ref);
+			`uvm_info("[REFERENCE MODEL]",$sformatf("REFERENCE TAn_ref = %0x, TBn_ref = %0x", con_tr_ref.TAn, con_tr_ref.TBn), UVM_LOW)
+
+			this.con_tlm_fifo.put(con_tr_ref);
 		end
 		
 		this.out_tlm_fifos[id].put(fmt_tr);

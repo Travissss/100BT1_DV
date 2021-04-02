@@ -1,4 +1,5 @@
 
+
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: 		Travis
 // 
@@ -238,6 +239,67 @@ class mcdf_cov extends uvm_component;
 		}
 	endgroup
 	
+	//7: for converter tx_mode 
+	covergroup cg_converter_txmode;
+		tx_mode: coverpoint con_vif.mon_cb.tx_mode{
+			bins SENDZ		= {0	};
+			bins SENDI		= {1	};
+			bins SENDN 		= {2	};
+		}
+		
+		TAN:coverpoint con_vif.mon_cb.TAn{
+			bins TAN0 ={2'b00};
+			bins TAN1 ={2'b01};
+			bins TAN2 ={2'b11};
+		}
+		
+		TBN:coverpoint con_vif.mon_cb.TBn{
+			bins TBN0 ={2'b00};
+			bins TBN1 ={2'b01};
+			bins TBN2 ={2'b11};
+		}
+		
+		pam_x_txmode: cross TAN, TBN, tx_mode {
+			bins SENDI_TAN0 = binsof(tx_mode.SENDI) && binsof(TAN.TAN0);
+			bins SENDI_TAN1 = binsof(tx_mode.SENDI) && binsof(TAN.TAN1);
+			bins SENDI_TAN2 = binsof(tx_mode.SENDI) && binsof(TAN.TAN2);
+			bins SENDI_TBN0 = binsof(tx_mode.SENDI) && binsof(TBN.TBN0);
+			bins SENDI_TBN1 = binsof(tx_mode.SENDI) && binsof(TBN.TBN1);
+			bins SENDI_TBN2 = binsof(tx_mode.SENDI) && binsof(TBN.TBN2);
+			
+			bins SENDN_TAN0 = binsof(tx_mode.SENDN) && binsof(TAN.TAN0);
+			bins SENDN_TAN1 = binsof(tx_mode.SENDN) && binsof(TAN.TAN1);
+			bins SENDN_TAN2 = binsof(tx_mode.SENDN) && binsof(TAN.TAN2);
+			bins SENDN_TBN0 = binsof(tx_mode.SENDN) && binsof(TBN.TBN0);
+			bins SENDN_TBN1 = binsof(tx_mode.SENDN) && binsof(TBN.TBN1);
+			bins SENDN_TBN2 = binsof(tx_mode.SENDN) && binsof(TBN.TBN2);
+			
+			bins SENDZ_TATB = binsof(tx_mode.SENDZ) && binsof(TBN.TBN0) && binsof(TAN.TAN0);
+		}
+		
+	endgroup
+	
+		//8: for converter wait valid 
+	covergroup cg_converter_wait;
+		wait_vld: coverpoint con_vif.mon_cb.wait_vld{
+			type_option.weight = 0;
+			bins wait0		= {0	 };
+			bins waitm[3]	= {[1:30]};
+			bins waitn 		= {31	 };
+		}
+		
+		mst_slv: coverpoint con_vif.mon_cb.master_slave{
+			bins master = {0};
+			bins slave 	= {1};
+		}
+		
+		slave_x_wait: cross wait_vld, mst_slv{
+			bins slave_wait0 = binsof(mst_slv.slave) && binsof(wait_vld);
+		}
+		
+	endgroup
+	
+	
 	//----------------------------------------------
 	// Methods
 	// ---------------------------------------------
@@ -259,6 +321,8 @@ class mcdf_cov extends uvm_component;
 	extern task do_channel_sample();	
 	extern task do_arbiter_sample();
 	extern task do_formatter_sample();
+	extern task do_converter_sample();
+
 
 endclass
 
@@ -274,6 +338,8 @@ function mcdf_cov::new(string name = "mcdf_cov", uvm_component parent);
 	cg_formatter_length         = new();
 	cg_mcdf_reg_illegal_access  = new();
 	cg_mcdf_reg_write_read      = new();
+	cg_converter_txmode			= new();
+	cg_converter_wait			= new();
 endfunction
 
 //Build_Phase
@@ -288,6 +354,7 @@ task mcdf_cov::run_phase(uvm_phase phase);
 	    do_channel_sample();	
 	    do_arbiter_sample();
 	    do_formatter_sample();
+		do_converter_sample();
 	join
 endtask
 
@@ -304,6 +371,8 @@ function void mcdf_cov::report_phase(uvm_phase phase);
 	s = {s, $sformatf("cg_formatter_length 			coverage: %.1f \n", cg_formatter_length.get_coverage())			};	
 	s = {s, $sformatf("cg_mcdf_reg_illegal_access 	coverage: %.1f \n", cg_mcdf_reg_illegal_access.get_coverage())	};	
 	s = {s, $sformatf("cg_mcdf_reg_write_read     	coverage: %.1f \n", cg_mcdf_reg_write_read.get_coverage())		};	
+	s = {s, $sformatf("cg_converter_txmode     		coverage: %.1f \n", cg_converter_txmode.get_coverage())		};
+	s = {s, $sformatf("cg_converter_wait	     	coverage: %.1f \n", cg_converter_wait.get_coverage())		};
 	s = "\n--------------------------------------------------\n";
 	`uvm_info(get_type_name(), s, UVM_MEDIUM)
 	
@@ -386,4 +455,12 @@ task mcdf_cov::do_formatter_sample();
 			end
 		end
 	join
+endtask
+
+task mcdf_cov::do_converter_sample();
+	forever begin
+		@(posedge con_vif.clk_33m iff con_vif.rstn);
+		cg_converter_txmode.sample();
+		cg_converter_wait.sample();
+	end
 endtask

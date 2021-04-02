@@ -17,6 +17,7 @@ class chnl_trans extends uvm_sequence_item;
 	// Data, Interface, port  Members
 	//------------------------------------------
     rand bit [7:0] data[];
+    rand bit [3:0] pkt_data;
     rand bit [31:0] data_size;
     rand int        ch_id;
     rand int        pkt_id;
@@ -35,13 +36,14 @@ class chnl_trans extends uvm_sequence_item;
         soft pkt_id == 0;
         soft data_nidles inside {[0:2]};
         soft pkt_nidles inside {[1:10]};
-		foreach(data[i]) data[i] == (this.ch_id << 5) + i;
+		foreach(data[i]) data[i] == (this.ch_id << 6) + (pkt_data<<2)+ i;
     };
 
 	//Factory Registration
 	//
     `uvm_object_utils_begin(chnl_trans)
         `uvm_field_array_int    (data       , UVM_ALL_ON)
+        `uvm_field_int			(pkt_data   , UVM_ALL_ON)
         `uvm_field_int          (data_size  , UVM_ALL_ON)
         `uvm_field_int          (ch_id      , UVM_ALL_ON)
         `uvm_field_int          (pkt_id     , UVM_ALL_ON)
