@@ -15,6 +15,7 @@ interface chnl_intf(input clk, input rstn);
 	logic	[7:0]	ch_data;
 	logic			ch_valid;
 	logic 			ch_ready;
+	logic 			rcv_vld;
 	
 	clocking drv_cb@(posedge clk);
 		// default input #1 output #1;
@@ -25,9 +26,10 @@ interface chnl_intf(input clk, input rstn);
 	
 	clocking mon_cb@(posedge clk);
 		// default input #1 output #1;
-        input  ch_data;
-        input  ch_valid;
-        input  ch_ready;
+        input  	ch_data;
+        input  	ch_valid;
+        input  	ch_ready;
+		input 	rcv_vld;
 	endclocking
 
 endinterface

@@ -92,7 +92,7 @@ task chnl_drv::chnl_write(input chnl_trans pkt);
 	int debug_i = 0;
     foreach(pkt.data[i]) 
     begin
-        @(posedge vif.clk);
+        @(posedge vif.clk iff vif.rcv_vld);
         vif.drv_cb.ch_valid <= 1;
         vif.drv_cb.ch_data <= pkt.data[i];
 		`uvm_info("chnl_drv debug_probe", $sformatf("interface ch_data = %0x",vif.mon_cb.ch_data), UVM_HIGH)

@@ -92,7 +92,7 @@ task con_drv::do_drive();
 endtask
 
 task con_drv::con_write(input con_trans pkt);
-	@(posedge vif.clk_33m iff vif.tx_enable);
+	@(posedge vif.clk_33m);
 	if(pkt.master_slave) begin
 	    vif.drv_cb.seed    		<= pkt.seed;
         vif.drv_cb.tx_mode		<= pkt.tx_mode;

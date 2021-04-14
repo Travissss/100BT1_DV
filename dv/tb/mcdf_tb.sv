@@ -87,6 +87,11 @@ fmt_intf	fmt_if	(.*);
 con_intf	con_if	(.*);
 mcdf_intf	mcdf_if	(.*);
 
+//chnl interface monitoring recv_vld signal
+assign chnl0_if.rcv_vld	= con_if.rcv_vld;
+assign chnl1_if.rcv_vld	= con_if.rcv_vld;
+assign chnl2_if.rcv_vld	= con_if.rcv_vld;
+
 //mcdf interface monitoring MCDF ports and signals
 assign mcdf_if.chnl_en[0]	= mcdf_tb.dut.ctrl_regs_inst.slv0_en_o;
 assign mcdf_if.chnl_en[1]	= mcdf_tb.dut.ctrl_regs_inst.slv1_en_o;
