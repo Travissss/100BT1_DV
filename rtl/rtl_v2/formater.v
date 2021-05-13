@@ -77,22 +77,38 @@ end
 //--------------------------fullfill formater fifo && buffer------------------------------------//
 always @ (posedge clk_i or negedge rstn_i)
 begin
-  if (!rstn_i) begin  fmt_fifo[cnt_rec_r] <= 8'hff;
-                      slv0_buffer_r <= 8'hff; 
-					            buffer0_val_r <= 1'b0;
-                      slv1_buffer_r <= 8'hff;
-					            buffer1_val_r <= 1'b0;
-                      slv2_buffer_r <= 8'hff;
-					            buffer2_val_r <= 1'b0;
-                end 
-  else if (fmt_ack_r) 
+	if (!rstn_i) begin  
+				fmt_fifo[cnt_rec_r] <= 8'hff;
+				slv0_buffer_r <= 8'hff; 
+				buffer0_val_r <= 1'b0;
+				slv1_buffer_r <= 8'hff;
+				buffer1_val_r <= 1'b0;
+				slv2_buffer_r <= 8'hff;
+				buffer2_val_r <= 1'b0;
+	end 
+	else if (fmt_ack_r) 
         case (a2f_id_i)
-              2'b00 : if (buffer0_val_r && fmt_ack_r) begin fmt_fifo[cnt_rec_r] <= slv0_buffer_r; buffer0_val_r <= 1'b0; end 
-              else if (a2f_val_i && fmt_ack_r) fmt_fifo[cnt_rec_r] <= a2f_data_i;
-              2'b01 : if (buffer1_val_r && fmt_ack_r) begin fmt_fifo[cnt_rec_r] <= slv1_buffer_r; buffer1_val_r <= 1'b0; end 
-              else if (a2f_val_i && fmt_ack_r) fmt_fifo[cnt_rec_r] <= a2f_data_i;
-              2'b10 : if (buffer2_val_r && fmt_ack_r) begin fmt_fifo[cnt_rec_r] <= slv2_buffer_r; buffer2_val_r <= 1'b0; end 
-              else if (a2f_val_i && fmt_ack_r) fmt_fifo[cnt_rec_r] <= a2f_data_i;
+			2'b00 : 
+				if (buffer0_val_r && fmt_ack_r) begin 
+					fmt_fifo[cnt_rec_r] <= slv0_buffer_r;
+					buffer0_val_r <= 1'b0; 
+				end 
+				else if (a2f_val_i && fmt_ack_r) 
+					fmt_fifo[cnt_rec_r] <= a2f_data_i;
+			2'b01 : 
+				if (buffer1_val_r && fmt_ack_r) begin 
+					fmt_fifo[cnt_rec_r] <= slv1_buffer_r; 
+					buffer1_val_r <= 1'b0; 
+				end 
+				else if (a2f_val_i && fmt_ack_r) 
+					fmt_fifo[cnt_rec_r] <= a2f_data_i;
+			2'b10 : 
+				if (buffer2_val_r && fmt_ack_r) begin 
+					fmt_fifo[cnt_rec_r] <= slv2_buffer_r; 
+					buffer2_val_r <= 1'b0; 
+				end 
+			else if (a2f_val_i && fmt_ack_r) 
+				fmt_fifo[cnt_rec_r] <= a2f_data_i;
         endcase
     else 
       case (a2f_id_i)
