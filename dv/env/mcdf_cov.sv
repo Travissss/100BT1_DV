@@ -180,9 +180,9 @@ class mcdf_cov extends uvm_component;
 			bins ch0_en_vld		= binsof(ch0_en.en		) && binsof(ch0_vld.hi);
 			bins ch1_en_vld		= binsof(ch1_en.en		) && binsof(ch1_vld.hi);
 			bins ch2_en_vld		= binsof(ch2_en.en		) && binsof(ch2_vld.hi);
-			bins ch0_dis_en_vld	= binsof(ch0_en.dis_en	) && binsof(ch0_vld.hi);
-			bins ch1_dis_en_vld	= binsof(ch1_en.dis_en	) && binsof(ch1_vld.hi);
-			bins ch2_dis_en_vld	= binsof(ch2_en.dis_en	) && binsof(ch2_vld.hi);			
+			bins ch0_dis_en_vld	= binsof(ch0_en.dis_en	) && binsof(ch0_vld.lo);
+			bins ch1_dis_en_vld	= binsof(ch1_en.dis_en	) && binsof(ch1_vld.lo);
+			bins ch2_dis_en_vld	= binsof(ch2_en.dis_en	) && binsof(ch2_vld.lo);			
 		}
 	endgroup
 	

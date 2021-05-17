@@ -246,13 +246,14 @@ formater formater_inst(
                  .a2f_val_i		(a2f_val_s		),
 				 .pkglen_sel_i	(pkglen_sel_s	),
                  .a2f_id_i		(a2f_id_s		),
-                 .a2f_data_i	(a2f_data_s		),                          
-                 .f2a_ack_o		(f2a_ack_s		),
-                 .fmt_id_req_o	(f2a_id_req_s	),
-                 .fmt_chid_o	(fmt_chid_o		),                  
-                 .fmt_length_o	(fmt_length_o	),                  
-                 .fmt_req_o		(fmt_req_o		),
-                 .fmt_grant_i	(fmt_grant_i	),
+                 .a2f_data_i	(a2f_data_s		),  
+				 
+                 .f2a_ack_o		(f2a_ack_s		),	//In IDLE state, ack is high, send to slv_fifo to read data;
+                 .fmt_id_req_o	(f2a_id_req_s	),  //In IDLE and END state, req is high, send to arbiter to get id_sel_r and pkt_length;
+                 .fmt_chid_o	(fmt_chid_o		),  // Corresponding Channel valid signal                
+                 .fmt_length_o	(fmt_length_o	),  // Channel ID selected by arbiter                
+                 .fmt_req_o		(fmt_req_o		),  // Channel data selected by arbiter
+                 .fmt_grant_i	(fmt_grant_i	),  // Channel data length
                  .fmt_data_o	(fmt_data_o		),
 				 .fmt_vld_o		(fmt_vld_o		),
                  .fmt_start_o	(fmt_start_o	),

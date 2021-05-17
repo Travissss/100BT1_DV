@@ -37,9 +37,12 @@ end
 
 always @ (*) //reset signal
 begin 
-  if (!rstn_i) slvx_req_o = 1'b0;
-  else if (!empty_s) slvx_req_o = 1'b1;
-  else slvx_req_o = 1'b0;
+	if (!rstn_i) 
+		slvx_req_o = 1'b0;
+	else if (!empty_s) 
+		slvx_req_o = 1'b1;
+	else 
+		slvx_req_o = 1'b0;
 end 
 
 //write pointer increment

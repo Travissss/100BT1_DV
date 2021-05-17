@@ -6,22 +6,22 @@ module formater(
                  input                      rstn_i,
 					  
                  //connect with arbiter
-				 output                     f2a_ack_o,
-                 output                     fmt_id_req_o,
-                 input                      a2f_val_i,
-                 input    [1:0]             a2f_id_i,
-                 input    [7:0]            a2f_data_i,
-				 input 	  [2:0] 			pkglen_sel_i,
+				 output                     f2a_ack_o	,	//In IDLE state, ack is high, send to slv_fifo to read data;
+                 output                     fmt_id_req_o,	//In IDLE and END state, req is high, send to arbiter to get id_sel_r and pkt_length;
+                 input                      a2f_val_i	,	// Corresponding Channel valid signal
+                 input    [1:0]             a2f_id_i	,	// Channel ID selected by arbiter
+                 input    [7:0]            	a2f_data_i	,	// Channel data selected by arbiter
+				 input 	  [2:0] 			pkglen_sel_i,	// Channel data length
 					  
                 //connect with outside
-				input                      fmt_grant_i,
-                output   [1:0]             fmt_chid_o,                  
+				input                      	fmt_grant_i,
+                output   [1:0]             	fmt_chid_o,                  
                 output   [31:0]             fmt_length_o,                  
-                output                     fmt_req_o,
-                output   [7:0]            fmt_data_o,
+                output                    	fmt_req_o,
+                output   [7:0]            	fmt_data_o,
 				output	reg 				fmt_vld_o,
-                output                     fmt_start_o,
-                output                     fmt_end_o
+                output                     	fmt_start_o,
+                output                     	fmt_end_o
                );
 
 reg [31:0]     length_r;
@@ -91,21 +91,21 @@ begin
 			2'b00 : 
 				if (buffer0_val_r && fmt_ack_r) begin 
 					fmt_fifo[cnt_rec_r] <= slv0_buffer_r;
-					buffer0_val_r <= 1'b0; 
+					buffer0_val_r 		<= 1'b0; 
 				end 
 				else if (a2f_val_i && fmt_ack_r) 
 					fmt_fifo[cnt_rec_r] <= a2f_data_i;
 			2'b01 : 
 				if (buffer1_val_r && fmt_ack_r) begin 
 					fmt_fifo[cnt_rec_r] <= slv1_buffer_r; 
-					buffer1_val_r <= 1'b0; 
+					buffer1_val_r 		<= 1'b0; 
 				end 
 				else if (a2f_val_i && fmt_ack_r) 
 					fmt_fifo[cnt_rec_r] <= a2f_data_i;
 			2'b10 : 
 				if (buffer2_val_r && fmt_ack_r) begin 
 					fmt_fifo[cnt_rec_r] <= slv2_buffer_r; 
-					buffer2_val_r <= 1'b0; 
+					buffer2_val_r 		<= 1'b0; 
 				end 
 			else if (a2f_val_i && fmt_ack_r) 
 				fmt_fifo[cnt_rec_r] <= a2f_data_i;
@@ -164,19 +164,24 @@ begin
 	n_state = FMT_IDLE;
 	else case (c_state)
 	FMT_IDLE : 	begin
-						if (cnt_rec_r == length_r - 2'd1) //need to decode and pay attention to cnt_rec_r start from 0 
-							n_state = FMT_REQ;      //pay attention to datapath and FSM structure
-						else 
-							n_state = FMT_IDLE;
-					end 
+		if (cnt_rec_r == length_r - 2'd1) //need to decode and pay attention to cnt_rec_r start from 0 
+			n_state = FMT_REQ;      //pay attention to datapath and FSM structure
+		else 
+			n_state = FMT_IDLE;
+	end 
 					
-	FMT_REQ : if(cnt_rec_r >= length_r)	n_state = FMT_WAIT_GRANT;
-            else n_state = FMT_REQ;
+	FMT_REQ : 
+		if(cnt_rec_r >= length_r)	
+			n_state = FMT_WAIT_GRANT;
+        else 
+			n_state = FMT_REQ;
 	
 	FMT_WAIT_GRANT : 	begin
-								if(fmt_grant_i) n_state = FMT_START;
-								else n_state = FMT_WAIT_GRANT;
-							end 
+		if(fmt_grant_i) 
+			n_state = FMT_START;
+		else 
+			n_state = FMT_WAIT_GRANT;
+	end 
 							
 	FMT_START :  n_state = FMT_SEND ;
 	
@@ -194,70 +199,78 @@ end
 always @ (*)
 begin
   if (!rstn_i)begin
-                fmt_end_r = 1'b0;
+                fmt_end_r 	= 1'b0;
                 fmt_start_r = 1'b0;
-                fmt_req_r = 1'b0;
-                fmt_ack_r = 1'b0;
-                fmt_send_r = 1'b0;
-                fmt_id_req_r = 1'b1;
+                fmt_req_r 	= 1'b0;
+                fmt_ack_r 	= 1'b0;
+                fmt_send_r 	= 1'b0;
+                fmt_id_req_r= 1'b1;
               end
   else case (c_state)
     FMT_IDLE : begin
-      if (a2f_id_i != 2'b11) fmt_ack_r = 1'b1;
-      else fmt_ack_r = 1'b0;
-      if (a2f_id_i == 2'b11) fmt_id_req_r = 1'b1;
-      else fmt_id_req_r = 1'b0;
-      fmt_end_r = 1'b0;
-      fmt_start_r = 1'b0;
-      fmt_req_r = 1'b0;
-      fmt_send_r = 1'b0;
+		if (a2f_id_i != 2'b11) 
+			fmt_ack_r = 1'b1;
+		else 
+			fmt_ack_r = 1'b0;
+			
+		if (a2f_id_i == 2'b11) 
+			fmt_id_req_r = 1'b1;
+		else 
+			fmt_id_req_r = 1'b0;
+		
+		fmt_end_r = 1'b0;
+		fmt_start_r = 1'b0;
+		fmt_req_r = 1'b0;
+		fmt_send_r = 1'b0;
     end 
 
     FMT_REQ : begin
-      if (cnt_rec_r >= length_r)  fmt_ack_r = 1'b0;
-      else fmt_ack_r = 1'b1;
-      fmt_req_r = 1'b1;
-      //fmt_ack_r = 1'b0;
-      fmt_end_r = 1'b0;
-      fmt_start_r = 1'b0;
-      fmt_send_r = 1'b0;
-      fmt_id_req_r = 1'b0;
+	if (cnt_rec_r >= length_r)  
+		fmt_ack_r = 1'b0;
+	else 
+		fmt_ack_r = 1'b1;
+		fmt_req_r = 1'b1;
+		//fmt_ack_r = 1'b0;
+		fmt_end_r = 1'b0;
+		fmt_start_r = 1'b0;
+		fmt_send_r = 1'b0;
+		fmt_id_req_r = 1'b0;
     end
 
     FMT_WAIT_GRANT : begin
-      fmt_req_r = 1'b1;
-      fmt_ack_r = 1'b0;
-      fmt_start_r = 1'b0;
-      fmt_end_r = 1'b0;
-      fmt_send_r = 1'b0;
-      fmt_id_req_r = 1'b0;
+		fmt_req_r = 1'b1;
+		fmt_ack_r = 1'b0;
+		fmt_start_r = 1'b0;
+		fmt_end_r = 1'b0;
+		fmt_send_r = 1'b0;
+		fmt_id_req_r = 1'b0;
     end
 
     FMT_START : begin
-      fmt_req_r = 1'b0;
-      fmt_ack_r = 1'b0;
-      fmt_start_r = 1'b1;
-      fmt_end_r = 1'b0;
-      fmt_send_r = 1'b1;
-      fmt_id_req_r = 1'b0;
+		fmt_req_r = 1'b0;
+		fmt_ack_r = 1'b0;
+		fmt_start_r = 1'b1;
+		fmt_end_r = 1'b0;
+		fmt_send_r = 1'b1;
+		fmt_id_req_r = 1'b0;
     end
 
     FMT_SEND : begin
-      fmt_req_r = 1'b0;
-      fmt_ack_r = 1'b0;
-      fmt_start_r = 1'b0;
-      fmt_end_r = 1'b0;
-      fmt_send_r = 1'b1;
-      fmt_id_req_r = 1'b0;
+		fmt_req_r = 1'b0;
+		fmt_ack_r = 1'b0;
+		fmt_start_r = 1'b0;
+		fmt_end_r = 1'b0;
+		fmt_send_r = 1'b1;
+		fmt_id_req_r = 1'b0;
     end
 
     FMT_END : begin 
-      fmt_req_r = 1'b0;
-      fmt_ack_r = 1'b0;
-      fmt_start_r = 1'b0;
-      fmt_end_r = 1'b1;
-      fmt_send_r = 1'b1;
-      fmt_id_req_r = 1'b1;
+		fmt_req_r = 1'b0;
+		fmt_ack_r = 1'b0;
+		fmt_start_r = 1'b0;
+		fmt_end_r = 1'b1;
+		fmt_send_r = 1'b1;
+		fmt_id_req_r = 1'b1;
     end
   endcase 
       

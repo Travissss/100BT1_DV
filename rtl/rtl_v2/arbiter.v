@@ -15,34 +15,34 @@ input [2:0]					 slv1_pkglen_i,
 input [2:0]					 slv2_pkglen_i,
 
 //connect with slave port
-input  [7:0]            slv0_data_i,
-input  [7:0]            slv1_data_i,
-input  [7:0]            slv2_data_i,
-input                    slv0_req_i,
-input                    slv1_req_i,
-input                    slv2_req_i,
-input                    slv0_val_i,
-input                    slv1_val_i,
-input                    slv2_val_i,
-output                   a2s0_ack_o,
-output                   a2s1_ack_o,
-output                   a2s2_ack_o,
+input  [7:0]  	slv0_data_i,
+input  [7:0]  	slv1_data_i,
+input  [7:0]  	slv2_data_i,
+input         	slv0_req_i,
+input         	slv1_req_i,
+input         	slv2_req_i,
+input         	slv0_val_i,
+input         	slv1_val_i,
+input         	slv2_val_i,
+output        	a2s0_ack_o,
+output        	a2s1_ack_o,
+output        	a2s2_ack_o,
 
 //connect with formater
-input                    f2a_id_req_i,
-input                    f2a_ack_i,
-output                   a2f_val_o,
-output [1:0]             a2f_id_o,
-output [7:0]            a2f_data_o,
-output [2:0] 				 a2f_pkglen_sel_o
+input           f2a_id_req_i,
+input           f2a_ack_i,
+output          a2f_val_o,
+output [1:0]    a2f_id_o,
+output [7:0]   	a2f_data_o,
+output [2:0] 	a2f_pkglen_sel_o
 );
 //////////////////////////////////////////////////////////
 
-reg                   a2f_val_r;
-reg [1:0]             a2f_id_r;
-reg [7:0]            a2f_data_r;
-reg [1:0]             id_sel_r;
-reg [2:0] 				 a2f_pkglen_sel_r;
+reg         	a2f_val_r;
+reg [1:0]   	a2f_id_r;
+reg [7:0]   	a2f_data_r;
+reg [1:0]   	id_sel_r;
+reg [2:0] 		a2f_pkglen_sel_r;
 
 always @ (posedge clk_i or negedge rstn_i)
 begin : CHANEL_SELECT
